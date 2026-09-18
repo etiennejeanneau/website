@@ -23,10 +23,17 @@ See [CLAUDE.md](CLAUDE.md): drop the game in `games/<slug>/`, write
    (parameter `HostedZoneId` = the Route 53 zone of ohlala.cloud).
    Certificate validation records are created automatically; the stack takes
    10 to 20 minutes the first time because of CloudFront.
-2. In the GitHub repo, Settings → Secrets and variables → Actions → Variables, add:
+2. In the GitHub repo, Settings → Secrets and variables → Actions, add
+   under **Secrets**:
    - `AWS_DEPLOY_ROLE_ARN` = stack output `DeployRoleArn`
+
+   and under **Variables**:
    - `SITE_BUCKET` = stack output `BucketName`
    - `CLOUDFRONT_DISTRIBUTION_ID` = stack output `DistributionId`
+
+   The role ARN is a secret rather than a variable because the runner prints
+   variables in the build log, and this repo is public, so its logs are too.
+   The ARN contains the AWS account id; secrets show up as `***` instead.
 3. Settings → Environments → create `production` (no protection rules needed).
 4. Push to `main`, or run the workflow by hand from the Actions tab.
 
