@@ -8,8 +8,8 @@ it undercounts people behind one NAT and overcounts people whose IP changes.
 Good enough to see whether anyone is coming.
 
 Usage:
-  python scripts/stats.py --bucket ohlala.cloud-logs --days 7
-  python scripts/stats.py --bucket ohlala.cloud-logs --days 30 --pages
+  python scripts/stats.py --bucket ohlala-cloud-logs --days 7
+  python scripts/stats.py --bucket ohlala-cloud-logs --days 30 --pages
 
 Needs: boto3 and AWS credentials with s3:GetObject/ListBucket on the log bucket.
 """

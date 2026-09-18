@@ -82,7 +82,7 @@ page. Empty means no tag, which is the normal state while DNS does the job.
 
 ```sh
 pip install boto3
-python scripts/stats.py --bucket ohlala.cloud-logs --days 7
+python scripts/stats.py --bucket ohlala-cloud-logs --days 7
 ```
 
 ## Ads and feedback
