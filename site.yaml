@@ -1,0 +1,27 @@
+# Site-wide settings. Everything the build needs that is not content.
+title: ohlala.cloud
+tagline: Silly little games, vibe coded in the evening.
+description: >-
+  Free browser games for your phone, each built in one evening by describing it
+  to an AI and playing the result. Every game comes with the story of its prompts.
+url: https://ohlala.cloud
+language: en
+author:
+  name: Etienne
+  url: https://ohlala.cloud/about/
+
+# Feedback / "what next" form. Create a form on tally.so and paste its id.
+# Leave empty to hide the feedback block.
+tally_form_id: ""
+
+# Google AdSense publisher id (ca-pub-XXXXXXXXXXXXXXXX). Empty = no ad script.
+# Turn on "Privacy & messaging" in the AdSense console for the EU consent
+# banner; it is served by the same script, nothing else to add here.
+adsense_client: ""
+
+# Colours used for generated Open Graph images (one per game, keyed by slug).
+og_colors:
+  default: "#1f2937"
+  desktop-tycoon: "#0f766e"
+  pigeon-in-paris: "#7c2d5e"
+  aisle-be-back: "#b91c1c"
