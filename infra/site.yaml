@@ -9,6 +9,15 @@ Parameters:
   DomainName:
     Type: String
     Default: ohlala.cloud
+  BucketPrefix:
+    Type: String
+    Default: ohlala-cloud
+    AllowedPattern: "[a-z0-9][a-z0-9-]{1,40}[a-z0-9]"
+    Description: >-
+      Prefix for the two bucket names. Must not contain dots: CloudFront reaches
+      the bucket over HTTPS and the S3 wildcard certificate does not cover names
+      with extra dots, which would make every page return 502. Change this if S3
+      says the name is already taken (bucket names are globally unique).
   HostedZoneId:
     Type: AWS::Route53::HostedZone::Id
     Description: The Route 53 hosted zone for DomainName
@@ -26,7 +35,7 @@ Resources:
   SiteBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${DomainName}-site"
+      BucketName: !Sub "${BucketPrefix}-site"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -54,7 +63,7 @@ Resources:
   LogBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${DomainName}-logs"
+      BucketName: !Sub "${BucketPrefix}-logs"
       OwnershipControls:
         Rules: [{ ObjectOwnership: BucketOwnerPreferred }]
       PublicAccessBlockConfiguration:
