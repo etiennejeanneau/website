@@ -226,7 +226,13 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
+                # GitHub puts the environment in the sub claim when a job declares
+                # one, and the branch ref only when it does not. The deploy job uses
+                # environment: production, so it sends the first form; the second is
+                # kept so the role still works if that environment is ever dropped.
+                token.actions.githubusercontent.com:sub:
+                  - !Sub "repo:${GitHubRepo}:environment:production"
+                  - !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
       Policies:
         - PolicyName: deploy-site
           PolicyDocument:
