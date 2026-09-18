@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="{{ site.language }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% set page_title = page.title ~ ' · ' ~ site.title if page else site.title ~ ' · ' ~ site.tagline %}
+{% set page_desc = page.tagline if page and page.tagline else site.description | trim %}
+{% set page_url = site.url ~ (page.url if page else '/') %}
+{% set og_image = site.url ~ '/og/' ~ (page.slug if page else 'default') ~ '.png' %}
+<title>{{ page_title }}</title>
+<meta name="description" content="{{ page_desc }}">
+<link rel="canonical" href="{{ page_url }}">
+<meta property="og:type" content="{{ 'article' if page else 'website' }}">
+<meta property="og:site_name" content="{{ site.title }}">
+<meta property="og:title" content="{{ page.title if page else site.title }}">
+<meta property="og:description" content="{{ page_desc }}">
+<meta property="og:url" content="{{ page_url }}">
+<meta property="og:image" content="{{ og_image }}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="/feed.xml">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+{% block head %}{% endblock %}
+{% if site.adsense_client %}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ site.adsense_client }}" crossorigin="anonymous"></script>
+{% endif %}
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">{{ site.title }}</a>
+  <nav>
+    <a href="/#games">Games</a>
+    <a href="/about/">About</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>
+  <p>{{ site.tagline }} Made by <a href="{{ site.author.url }}">{{ site.author.name }}</a> with a lot of help from Claude.
+  <a href="/feed.xml">RSS</a></p>
+</footer>
+</body>
+</html>
