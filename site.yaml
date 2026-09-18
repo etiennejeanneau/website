@@ -14,6 +14,12 @@ author:
 # Leave empty to hide the feedback block.
 tally_form_id: ""
 
+# Google Search Console ownership token. In Search Console pick the
+# "HTML tag" method and paste either the token or the whole <meta> tag here.
+# Empty = no tag. Keep it even after Google says "verified": removing it
+# un-verifies the site.
+google_site_verification: ""
+
 # Google AdSense publisher id (ca-pub-XXXXXXXXXXXXXXXX). Empty = no ad script.
 # Turn on "Privacy & messaging" in the AdSense console for the EU consent
 # banner; it is served by the same script, nothing else to add here.

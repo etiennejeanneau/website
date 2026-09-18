@@ -30,6 +30,21 @@ See [CLAUDE.md](CLAUDE.md): drop the game in `games/<slug>/`, write
 3. Settings → Environments → create `production` (no protection rules needed).
 4. Push to `main`, or run the workflow by hand from the Actions tab.
 
+## Google Search Console
+
+The property belongs to the domain, not to the old site, so there is nothing to
+re-create: open the existing `ohlala.cloud` property and check it is still
+verified.
+
+- Still verified (a DNS TXT record in Route 53 keeps working) -> nothing to do.
+- Un-verified (the old site served a `google*.html` file that is gone) -> in
+  Search Console choose **HTML tag**, paste the token into
+  `google_site_verification` in `site.yaml`, push, then click Verify.
+
+Then, under **Sitemaps**, remove any sitemap left over from the old site and
+submit `sitemap.xml`. Old pages that no longer exist return the 404 page and
+drop out of the index on their own over a few weeks.
+
 ## Visitor stats (no cookies)
 
 ```sh
