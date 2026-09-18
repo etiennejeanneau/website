@@ -39,7 +39,9 @@ jobs:
           path: dist
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          # A secret, not a variable: the runner prints variables in the log,
+          # and a public repo means public logs. The ARN carries the account id.
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1
       # Long cache for hashed-free assets is not worth the complexity at this
       # size; everything is 5 min at the edge and invalidated on deploy.
