@@ -226,13 +226,19 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                # GitHub puts the environment in the sub claim when a job declares
-                # one, and the branch ref only when it does not. The deploy job uses
-                # environment: production, so it sends the first form; the second is
-                # kept so the role still works if that environment is ever dropped.
+              # The deploy job declares environment: production, and GitHub puts the
+              # environment in the sub claim instead of the branch when it does. This
+              # account also gets the immutable owner and repository ids inside the
+              # claim, so it reads repo:owner@1234/name@5678:environment:production.
+              # Both spellings are matched; the ids themselves are left as wildcards
+              # because they never change for this repository.
+              StringLike:
                 token.actions.githubusercontent.com:sub:
+                  - !Sub
+                    - "repo:${Owner}@*/${Name}@*:environment:production"
+                    - Owner: !Select [0, !Split ["/", !Ref GitHubRepo]]
+                      Name: !Select [1, !Split ["/", !Ref GitHubRepo]]
                   - !Sub "repo:${GitHubRepo}:environment:production"
-                  - !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
       Policies:
         - PolicyName: deploy-site
           PolicyDocument:
