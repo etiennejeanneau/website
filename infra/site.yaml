@@ -23,8 +23,23 @@ Parameters:
     Description: The Route 53 hosted zone for DomainName
   GitHubRepo:
     Type: String
-    Default: ohlala-cloud/games-website
-    Description: owner/repo allowed to deploy (main branch only)
+    Default: etiennejeanneau/website
+    Description: owner/repo allowed to deploy (production environment only)
+  GitHubOwnerId:
+    Type: String
+    Default: "21365848"
+    AllowedPattern: "[0-9]+"
+    Description: >-
+      Numeric id of the GitHub account that owns the repo. GitHub puts it in the
+      OIDC token next to the name and it never changes, even if the account is
+      renamed. Find it at https://api.github.com/users/<owner>
+  GitHubRepoId:
+    Type: String
+    Default: "1375690421"
+    AllowedPattern: "[0-9]+"
+    Description: >-
+      Numeric id of the repo itself, same idea.
+      Find it at https://api.github.com/repos/<owner>/<repo>
   LogRetentionDays:
     Type: Number
     Default: 400
@@ -224,21 +239,21 @@ Resources:
             Principal: { Federated: !Ref GitHubOidcProvider }
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
+              # One exact subject, no wildcards anywhere. The deploy job declares
+              # environment: production, so GitHub puts the environment in the sub
+              # claim instead of the branch. Repositories created after 15 July 2026
+              # also get the immutable owner and repository ids next to the names,
+              # which is the form this repository sends:
+              #   repo:owner@21365848/name@1375690421:environment:production
+              # Pinning the ids rather than wildcarding them is the whole point of
+              # having them: if the account name were ever released and someone else
+              # took it, a repository of theirs with the same name would not match.
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-              # The deploy job declares environment: production, and GitHub puts the
-              # environment in the sub claim instead of the branch when it does. This
-              # account also gets the immutable owner and repository ids inside the
-              # claim, so it reads repo:owner@1234/name@5678:environment:production.
-              # Both spellings are matched; the ids themselves are left as wildcards
-              # because they never change for this repository.
-              StringLike:
-                token.actions.githubusercontent.com:sub:
-                  - !Sub
-                    - "repo:${Owner}@*/${Name}@*:environment:production"
-                    - Owner: !Select [0, !Split ["/", !Ref GitHubRepo]]
-                      Name: !Select [1, !Split ["/", !Ref GitHubRepo]]
-                  - !Sub "repo:${GitHubRepo}:environment:production"
+                token.actions.githubusercontent.com:sub: !Sub
+                  - "repo:${Owner}@${GitHubOwnerId}/${Name}@${GitHubRepoId}:environment:production"
+                  - Owner: !Select [0, !Split ["/", !Ref GitHubRepo]]
+                    Name: !Select [1, !Split ["/", !Ref GitHubRepo]]
       Policies:
         - PolicyName: deploy-site
           PolicyDocument:

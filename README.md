@@ -23,6 +23,17 @@ See [CLAUDE.md](CLAUDE.md): drop the game in `games/<slug>/`, write
    (parameter `HostedZoneId` = the Route 53 zone of ohlala.cloud).
    Certificate validation records are created automatically; the stack takes
    10 to 20 minutes the first time because of CloudFront.
+
+   The other parameters already default to this repo. `GitHubRepo`,
+   `GitHubOwnerId` and `GitHubRepoId` together decide which repository is
+   allowed to deploy: GitHub signs each build with a token naming the owner and
+   repo by name *and* by number, and the stack only trusts that exact string.
+   The numbers come from `https://api.github.com/repos/<owner>/<repo>`
+   (`id`, and `owner.id`). They are what makes the trust survive a rename —
+   and what stops a different account from ever reusing the name.
+
+   Editing this file changes nothing by itself: update the CloudFormation
+   stack for it to take effect.
 2. In the GitHub repo, Settings → Secrets and variables → Actions, add
    under **Secrets**:
    - `AWS_DEPLOY_ROLE_ARN` = stack output `DeployRoleArn`
@@ -71,7 +82,7 @@ page. Empty means no tag, which is the normal state while DNS does the job.
 
 ```sh
 pip install boto3
-python scripts/stats.py --bucket ohlala.cloud-logs --days 7
+python scripts/stats.py --bucket ohlala-cloud-logs --days 7
 ```
 
 ## Ads and feedback

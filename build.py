@@ -12,7 +12,7 @@ Pipeline
                  /play/<slug>/          the raw game file, copied untouched
                  /<slug>/               any other content page (about, ...)
                  /404.html
-4. extras()    sitemap.xml, robots.txt, llms.txt, feed.xml, og/<slug>.png
+4. extras()    sitemap.xml, robots.txt, ads.txt, llms.txt, feed.xml, og/<slug>.png
 5. copy()      static/ -> dist/static/
 
 Content model (front matter keys)
@@ -169,6 +169,10 @@ def validate(site: Site) -> None:
             if not p.meta.get("date"):
                 sys.exit(f"{p.source}: game pages need a 'date'")
 
+    client = str(site.config.get("adsense_client") or "").strip()
+    if client and not re.fullmatch(r"ca-pub-\d{16}", client):
+        sys.exit(f"site.yaml: adsense_client should look like ca-pub-0000000000000000, got '{client}'")
+
 
 # ---------------------------------------------------------------- render
 def make_env(site: Site) -> Environment:
@@ -221,6 +225,20 @@ def robots(site: Site, out: Path) -> None:
     base = site.config["url"].rstrip("/")
     # Everyone welcome, AI crawlers included: the stories are meant to be read.
     write(out, "robots.txt", f"User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n")
+
+
+def ads_txt(site: Site, out: Path) -> None:
+    """Tells ad buyers that Google is allowed to sell this site's ad space.
+
+    Without it AdSense treats the inventory as unauthorised and pays less or
+    nothing. The long number is Google's own id, the same for every publisher;
+    only the pub- part is ours. No publisher id in site.yaml -> no file.
+    """
+    client = str(site.config.get("adsense_client") or "").strip()
+    if not client:
+        return
+    publisher = client[3:] if client.startswith("ca-") else client
+    write(out, "ads.txt", f"google.com, {publisher}, DIRECT, f08c47fec0942fa0\n")
 
 
 def llms_txt(site: Site, out: Path) -> None:
@@ -330,6 +348,7 @@ def main() -> None:
     render(site, out)
     sitemap(site, out)
     robots(site, out)
+    ads_txt(site, out)
     llms_txt(site, out)
     feed(site, out)
     og_images(site, out)
