@@ -137,8 +137,16 @@ def parse_markdown_file(path: Path) -> Page:
     return Page(slug=str(meta["slug"]), title=str(meta["title"]), body_md=body, meta=meta, source=path)
 
 
+def verification_token(value: object) -> str:
+    """Google hands out a whole <meta ...> tag; accept that or the token alone."""
+    text = str(value or "").strip()
+    m = re.search(r"""content=["']([^"']+)["']""", text)
+    return m.group(1) if m else text
+
+
 def load(include_drafts: bool) -> Site:
     config = yaml.safe_load((ROOT / "site.yaml").read_text(encoding="utf-8"))
+    config["google_site_verification"] = verification_token(config.get("google_site_verification"))
     pages = [parse_markdown_file(p) for p in sorted(CONTENT.glob("*.md"))]
     if not include_drafts:
         pages = [p for p in pages if not p.draft]

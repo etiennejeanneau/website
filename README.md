@@ -30,6 +30,36 @@ See [CLAUDE.md](CLAUDE.md): drop the game in `games/<slug>/`, write
 3. Settings → Environments → create `production` (no protection rules needed).
 4. Push to `main`, or run the workflow by hand from the Actions tab.
 
+## Google Search Console
+
+The property is verified by a DNS TXT record in the Route 53 zone. That record
+belongs to the domain, not to the site sitting on it, so replacing the whole
+site changed nothing: the existing `ohlala.cloud` property kept working and
+there was nothing to reconnect.
+
+The sitemap takes care of itself too. The build publishes it at
+`/sitemap.xml`, which is the same address the previous site used and the one
+`robots.txt` advertises, so Google refetches it and picks up the new pages. It
+cannot be deleted in Search Console, and does not need to be: a sitemap Google
+discovered through `robots.txt` is listed as discovered rather than submitted,
+and only submitted ones have a remove button.
+
+Old pages that no longer exist return a real 404 (CloudFront maps both 404 and
+403 to `/404.html` and keeps the 404 status, rather than answering "200 OK"
+with an error page, which is what keeps dead pages in the index forever). They
+drop out of the results on their own over a few weeks. To speed up the new
+pages: URL Inspection -> `https://ohlala.cloud/` -> Request indexing, once.
+Google follows the links to the games from there. Expect days, not hours.
+
+`www` redirects to the bare domain and the domain property covers both, so the
+site is never split across two properties.
+
+If verification ever needs redoing without DNS — a URL-prefix property, or the
+zone moving elsewhere — `site.yaml` has a `google_site_verification` key. Pick
+**HTML tag** in Search Console, paste the token (or the whole `<meta>` tag,
+both work) between the quotes and push; the tag lands in the head of every
+page. Empty means no tag, which is the normal state while DNS does the job.
+
 ## Visitor stats (no cookies)
 
 ```sh
