@@ -85,6 +85,7 @@
 </header>
 <main>
 {% block content %}{% endblock %}
+{% include "feedback.html" %}
 </main>
 <footer>
   <p>{{ t.tagline }} {{ t.made_by }} <a href="{{ prefix }}/about/">{{ site.author.name }}</a> {{ t.with_claude }}

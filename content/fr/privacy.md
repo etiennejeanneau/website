@@ -44,10 +44,12 @@ dans la même bannière.
 
 ## Le formulaire
 
-Le formulaire sur chaque page de jeu est géré par Tally. Si vous le remplissez,
-ce que vous avez écrit part chez Tally et je le lis là-bas ; si vous l'ignorez,
-rien n'est envoyé. C'est un formulaire ordinaire, donc évitez d'y mettre quoi
-que ce soit de vraiment privé.
+En bas de chaque page, un bouton mène à un formulaire géré par Tally. Ce n'est
+qu'un lien : tant que vous ne cliquez pas, ce site ne demande rien à Tally et
+Tally n'apprend pas que vous êtes passé. Si vous cliquez et que vous remplissez
+le formulaire, ce que vous avez écrit part chez Tally, avec la page d'où vous
+venez et la langue que vous lisiez, et je le lis là-bas. C'est un formulaire
+ordinaire, donc évitez d'y mettre quoi que ce soit de vraiment privé.
 
 ## Me demander des choses
 

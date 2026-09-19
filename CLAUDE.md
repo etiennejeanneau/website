@@ -79,7 +79,10 @@ languages.yaml      the languages, and every word outside the pages
 content/en/*.md     one file per page; a `game:` key makes it a game page
 content/fr/*.md     the same pages in French, same file names
 games/<slug>/       the playable files, copied untouched to /play/<slug>/
-templates/*.html    Jinja2: base, index, game, page, 404
+templates/*.html    Jinja2: base, index, game, page, 404, feedback
+                    feedback.html is the block base.html puts at the bottom of
+                    every page: a link to the Tally form, built only when
+                    site.yaml has a tally_form_id. See the README to set it up.
 static/             style.css, favicon.svg
 infra/site.yaml     CloudFormation for the whole AWS side (deploy in us-east-1)
 scripts/stats.py    visitor counts from CloudFront logs (no cookies)

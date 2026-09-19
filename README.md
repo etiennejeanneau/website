@@ -102,3 +102,29 @@ python scripts/stats.py --bucket ohlala-cloud-logs --days 7
 
 `site.yaml` holds the AdSense publisher id and the Tally form id. Both are empty
 by default; filling them in and pushing is all it takes.
+
+### The feedback form
+
+A static site cannot receive a form itself — there is no server here to catch
+one, only files. So the form lives on [tally.so](https://tally.so), which is
+free for this, and every page gets a button pointing at it. Nothing is asked of
+Tally until a visitor clicks, so the pages stay as private and as fast as they
+are now.
+
+Once, in Tally:
+
+1. Make a form. Two questions are plenty: *what did you think?* and *which game
+   was it?*
+2. Add two hidden fields, named exactly `page` and `lang` (type `/hidden` in the
+   editor to get one). The site fills them in, so each answer tells you which
+   page it was sent from and in which language it was read.
+3. Publish it, then under **Integrations → Email notifications** send yourself
+   an email on every answer. Slack and webhooks are in the same place if you
+   prefer.
+4. Copy the form's address (`https://tally.so/r/wkKqJb`) into `tally_form_id`
+   in `site.yaml` — the whole address or just the last part, both work — and
+   push.
+
+To take the form down again, empty `tally_form_id` and push: the button
+disappears from every page and nothing else changes. `python build.py` prints a
+note when the id is empty, so it is never a silent omission.

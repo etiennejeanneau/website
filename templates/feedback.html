@@ -1,0 +1,17 @@
+{# The feedback block. Included by base.html, so it is on every page and there
+   is only one copy of it to change.
+
+   It is a link, not an embedded form: nothing is asked of tally.so until a
+   visitor actually clicks, so no page here loads anything from anywhere else.
+   The two query parameters land in the form's hidden fields, so each message
+   arrives saying which page and which language it came from.
+
+   No tally_form_id in site.yaml -> no block at all. #}
+{% if site.tally_form_id %}
+{% set from_url = page.url if page else home %}
+<section class="feedback">
+  <h2>{{ t.feedback_heading }}</h2>
+  <p>{{ t.feedback_body }}</p>
+  <a class="button" href="https://tally.so/r/{{ site.tally_form_id }}?page={{ from_url | urlencode }}&amp;lang={{ lang }}" target="_blank" rel="noopener">{{ t.feedback_button }}</a>
+</section>
+{% endif %}

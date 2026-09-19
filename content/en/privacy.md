@@ -40,9 +40,12 @@ same banner.
 
 ## The feedback form
 
-The form on each game page is run by Tally. If you fill it in, what you typed
-goes to Tally and I read it there; if you ignore it, nothing is sent. It is an
-ordinary form, so please keep anything genuinely private out of it.
+At the bottom of every page there is a button that takes you to a form run by
+Tally. It is only a link: until you click it, this site asks Tally for nothing
+and Tally is not told you were here. If you do click and fill the form in, what
+you typed goes to Tally, along with which page you came from and which
+language you were reading, and I read it there. It is an ordinary form, so
+please keep anything genuinely private out of it.
 
 ## Asking me things
 

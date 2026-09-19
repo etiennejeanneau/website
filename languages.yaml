@@ -33,6 +33,10 @@ en:
     Best on a phone, portrait. Opens full screen; use your browser's back
     button to return.
   feedback_heading: Did it make you smile, or swear?
+  feedback_body: >-
+    Say so. It takes ten seconds, no email address needed, and it lands
+    straight in my inbox.
+  feedback_button: Leave feedback
   more_heading: More games
   made_by: Made by
   with_claude: with a lot of help from Claude.
@@ -70,6 +74,10 @@ fr:
     Mieux sur un téléphone, en mode portrait. Le jeu s'ouvre en plein écran ;
     le bouton retour du navigateur ramène ici.
   feedback_heading: Ça vous a fait sourire, ou jurer ?
+  feedback_body: >-
+    Dites-le-moi. Dix secondes, pas besoin d'adresse e-mail, et ça arrive
+    directement dans ma boîte.
+  feedback_button: Donner mon avis
   more_heading: Les autres jeux
   made_by: Fait par
   with_claude: avec beaucoup d'aide de Claude.
