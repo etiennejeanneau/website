@@ -16,7 +16,7 @@ One hour, start to finish. Fresh from Desktop Tycoon, I asked:
 
 > Now I'd like to make a game in html the same way that look like flappy bird and is also smartphone friendly. What theme do you suggest? I'd love it if the theme was funny
 
-Four suggestions came back: a flying baguette escaping a bakery, a fat Paris pigeon, a drunk bee with random drift, and a camper van bouncing under low bridges. Claude's own picks were the baguette or the bee. I took the pigeon anyway, and added the two constraints that define the game:
+Four suggestions came back: a flying baguette escaping a bakery, a fat Paris pigeon, a drunk bee with random drift, and a camper van bouncing under low bridges. Claude's own picks were the baguette or the bee. I took the pigeon anyway, and added two constraints:
 
 > Make a plan for a similar technical architecture for a flappy bird like in a Paris decor a la Ratatouille. The pigeon must also look like it is stupid
 
@@ -35,4 +35,4 @@ Seven published versions. My messages, in order:
 
 ## What I learned
 
-Asking for a plan first and then "piece by piece" cost nothing and made each test on my phone about one thing. And when I diagnosed the difficulty wrongly, I got corrected rather than obeyed, which is the whole point of having a collaborator instead of a compiler.
+Asking for a plan first and then "piece by piece" cost nothing and made each test on my phone about one thing. And when I diagnosed the difficulty wrongly, I got corrected rather than obeyed, which saved me from fixing the wrong thing.

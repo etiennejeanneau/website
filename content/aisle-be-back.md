@@ -25,7 +25,7 @@ Five versions, six messages from me. The first three happened in 13 minutes; the
 1. Playable core. "The speed seems too fast, I can't see the details. Except the sides which could use some design love." Start speed cut by a third, real shelves with cereal boxes and cans.
 2. My next message was in French, because it was late: the scrolling hurt my eyes, the top of the screen looked odd, and the obstacles were too small to tell apart. Floor lines faded, a proper store back wall, obstacles 55 % bigger.
 3. Next morning, the store banner said "SUPER PRIX" and I didn't like it. "Can we find a play on words for the supermarket name?" Six puns came back. Cart Blanche was Claude's favourite. Aisle Be Back won, and became the name of the game.
-4. Then the message that made the game:
+4. Then this message:
 
    > I'd love the cart to be pushed by a grand-ma with sunglasses (terminator style) and it could be fun to see her face grinning when the game is over. I want a share button with the score too
 
@@ -33,4 +33,4 @@ Five versions, six messages from me. The first three happened in 13 minutes; the
 
 ## What I learned
 
-The theme was chosen in seconds, but the character that makes people smile came in message five, after sleeping on it. A night between iterations is worth more than an extra hour of them.
+The theme was chosen in seconds, but the grandma only turned up in message five, the next morning. I wouldn't have thought of her the night before.

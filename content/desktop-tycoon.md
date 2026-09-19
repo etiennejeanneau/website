@@ -39,6 +39,6 @@ Eight published versions, twelve messages from me, most of them one or two lines
 
 ## What I learned
 
-The best feedback I gave was the least technical. "I felt bored" produced a bigger change than any precise request. And the one mechanic that makes the game feel different, sweeping files instead of box-selecting them, came from a half-sentence complaint typed on my phone.
+"I felt bored" produced a bigger change than any precise request I gave. And the mechanic I like best, sweeping files instead of box-selecting them, came from a half-sentence complaint typed on my phone.
 
-I never read the code. I still haven't.
+I never read the code.
