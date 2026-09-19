@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Whack-a-President: a free mobile whack-a-mole where two cartoon presidents, Tronk and Poutine, pop out of holes and talk back. Spare the dove and the intern.">
+<title>Whack-a-President</title>
+<meta name="theme-color" content="#2f7a3b">
+<style>[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+  :root{--ink:#1b1410;--paper:#f3e3b8;--felt:#2f7a3b;--felt2:#256330;--dirt:#5a3a22;--dirt2:#3a2414;--red:#d8352b;--blue:#25467e;--gold:#f2b632;}
+  html,body{height:100%;margin:0;}
+  body{background:var(--felt);color:var(--ink);font-family:"Bangers",Impact,"Arial Black",sans-serif;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--felt);}
+  canvas{display:block;max-width:100%;max-height:100%;touch-action:none;}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Patrick+Hand&display=swap">
+<div id="wrap"><canvas id="c"></canvas></div>
+<script>
+(() => {
+'use strict';
+// ───────────── CONFIG ─────────────
+const W = 420, H = 760;                      // logical canvas size (portrait, phone-first)
+const ROUND_SECONDS = 60;
+const GRID = 3, HOLE_Y0 = 250, HOLE_DY = 150, HOLE_X0 = 70, HOLE_DX = 140;
+
+const CHARACTERS = {
+  tronk: {
+    name: 'President Tronk', tagline: 'The Dealmaker', skin:'#f4a24a', hair:'#f7e27a', tie:'#d8352b', jacket:'#1e2d55',
+    popMs:[900,480], // [start, min] time visible, scales down over the round
+    lines: {
+      pop:  ['Tremendous hole.', 'Best digger. Me.', 'Rigged mallet!', 'Huge crowd.', 'Nobody pops better.'],
+      hit:  ['FAKE HAMMER!', 'Barely felt it.', 'Witch hunt!', 'NOT THE HAIR!', 'Very unfair.'],
+      miss: ['Too slow. Sad!', 'Loser hammer.', "You're fired.", 'I win. Bigly.']
+    }
+  },
+  poutine: {
+    name: 'President Poutine', tagline: 'The Strongman', skin:'#f1dcc4', hair:'#cfc3a6', tie:'#25467e', jacket:'#2a2a2a',
+    popMs:[850,450],
+    lines: {
+      pop:  ['Is not mole.', 'Special operation.', 'I was never here.', 'Hammer? Nyet.', 'Hole is mine now.'],
+      hit:  ['Hammer noted.', 'Felt nothing.', 'Is propaganda.', 'You are on list.', 'Da. Happened.'],
+      miss: ['Slow. Like sanction.', 'Hammer denied.', 'I win. Always.', 'Judo, my friend.']
+    }
+  }
+};
+const SUMMIT_BANTER = [
+  ['tronk','Vlad, tiny hole.'], ['poutine','Tiny hands, Donald.'],
+  ['tronk','Nice bear. Sad bear.'], ['poutine','Nice hair. Very free.'],
+  ['tronk','Wall around mallet!'], ['poutine','I own the mallet.']
+];
+const MODES = [
+  { id:'tronk',   label:'TRONK',   sub:'Bonk the Dealmaker', chars:['tronk'] },
+  { id:'poutine', label:'POUTINE', sub:'Bonk the Strongman', chars:['poutine'] },
+  { id:'summit',  label:'SUMMIT',  sub:'Both. Trash-talk included.', chars:['tronk','poutine'] }
+];
+const DECOYS = {
+  dove:   { name:'Peace Dove', penalty:3, lines:['Coo?! I am NEUTRAL.', 'Geneva will hear of this.'] },
+  intern: { name:'Intern',     penalty:2, lines:['I just bring coffee!', 'I have a thesis due!'] }
+};
+const GOLD_MULT = 5;
+const RANKS = [[0,'Junior Diplomat'],[10,'Press Secretary'],[20,'Ambassador of Bonk'],[30,'Secretary of Whack'],[45,'UN Secretary of Bonk'],[60,'Supreme Mallet Leader']];
+
+// ───────────── SETUP ─────────────
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let scale = 1;
+function resize(){
+  const r = Math.min(innerWidth / W, innerHeight / H);
+  cv.width = Math.round(W * r * devicePixelRatio); cv.height = Math.round(H * r * devicePixelRatio);
+  cv.style.width = Math.round(W * r) + 'px'; cv.style.height = Math.round(H * r) + 'px';
+  scale = r * devicePixelRatio;
+}
+addEventListener('resize', resize); resize();
+
+let best = 0; try { best = +localStorage.getItem('wap_best') || 0; } catch(e){}
+function saveBest(){ try { localStorage.setItem('wap_best', best); } catch(e){} }
+
+// ───────────── SOUND ─────────────
+const sfx = (() => {
+  let ac=null;
+  const tone=(f0,f1,dur,type='square',vol=0.18)=>{ if(!ac) return; const o=ac.createOscillator(), g=ac.createGain(); o.type=type; o.frequency.setValueAtTime(f0,ac.currentTime); o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),ac.currentTime+dur); g.gain.setValueAtTime(vol,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+dur); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+dur); };
+  return {
+    init(){ try { ac = ac || new (window.AudioContext||window.webkitAudioContext)(); if (ac.state==='suspended') ac.resume(); } catch(e){} },
+    bonk(){ tone(220,60,0.12,'square',0.22); tone(900,300,0.06,'triangle',0.1); },
+    gold(){ [660,880,1320].forEach((f,i)=>setTimeout(()=>tone(f,f,0.12,'triangle',0.2),i*70)); },
+    bad(){ tone(180,90,0.35,'sawtooth',0.2); },
+    whiff(){ tone(500,200,0.06,'sine',0.06); },
+    miss(){ tone(300,240,0.08,'sine',0.08); }
+  };
+})();
+
+// ───────────── STATE ─────────────
+const S = { screen:'menu', mode:null, score:0, timeLeft:0, combo:0, hits:0, misses:0, moles:[], bubbles:[], fx:[], last:0, banterAt:0, nextSpawn:0, whacks:[] };
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+
+class Mole {
+  constructor(hole, charId, visibleMs, kind='president'){
+    this.hole = hole; this.char = charId; this.t = 0; this.state = 'rising'; this.visibleMs = visibleMs;
+    this.hit = false; this.dead = false; this.kind = kind;
+    if (kind==='gold'){ this.say('PRESS CONFERENCE!', 900, true); }
+    else if (kind==='president' && Math.random()<0.33) this.say(rnd(CHARACTERS[charId].lines.pop), 1000);
+  }
+  say(text, ms, force){ const h=holePos(this.hole); S.bubbles = S.bubbles.filter(b=>b.hole!==this.hole); if (!force && S.bubbles.length>=2) return; S.bubbles.push({ hole:this.hole, x:h.x, y:h.y-100, text, ttl: ms }); }
+  // 0 = hidden, 1 = fully up
+  get up(){
+    if (this.state==='rising') return Math.min(1, this.t/120);
+    if (this.state==='up') return 1;
+    if (this.state==='sinking') return Math.max(0, 1 - this.t/220);
+    if (this.state==='hit') return Math.max(0, 1 - this.t/350);
+    return 0;
+  }
+  update(dt){
+    this.t += dt;
+    if (this.state==='rising' && this.t>=120){ this.state='up'; this.t=0; }
+    else if (this.state==='up' && this.t>=this.visibleMs){ this.state='sinking'; this.t=0; this.escaped(); }
+    else if (this.state==='sinking' && this.t>=220){ this.dead=true; }
+    else if (this.state==='hit' && this.t>=700){ this.dead=true; }
+  }
+  escaped(){ if (this.kind!=='president' && this.kind!=='gold') return; S.combo=0; S.misses++; S.score=Math.max(0,S.score-1); sfx.miss(); if (Math.random()<0.4) this.say(rnd(CHARACTERS[this.char].lines.miss), 900); }
+  whack(){
+    if (this.state!=='rising' && this.state!=='up') return false;
+    this.state='hit'; this.t=0; this.hit=true;
+    if (this.kind==='decoy') this.say(rnd(DECOYS[this.char].lines), 1100, true);
+    else if (this.kind==='gold') this.say('NO QUESTIONS!', 900, true);
+    else if (Math.random()<0.5) this.say(rnd(CHARACTERS[this.char].lines.hit), 900);
+    return true;
+  }
+}
+
+function holePos(i){ return { x: HOLE_X0 + (i%GRID)*HOLE_DX, y: HOLE_Y0 + Math.floor(i/GRID)*HOLE_DY }; }
+
+function startGame(mode){
+  Object.assign(S, { screen:'play', mode, score:0, timeLeft:ROUND_SECONDS*1000, combo:0, hits:0, misses:0, moles:[], bubbles:[], fx:[], banterAt:4000, nextSpawn:600, whacks:[], lastGold:0, shake:0 });
+  sfx.init();
+}
+function spawn(){
+  const busy = new Set(S.moles.map(m=>m.hole));
+  const free = [...Array(GRID*GRID).keys()].filter(i=>!busy.has(i));
+  if (!free.length) return;
+  const p = 1 - S.timeLeft/(ROUND_SECONDS*1000);           // progress 0→1
+  const elapsed = ROUND_SECONDS*1000 - S.timeLeft;
+  const r = Math.random();
+  if (elapsed > 8000 && r < 0.18){                           // decoy: do NOT hit
+    S.moles.push(new Mole(rnd(free), Math.random()<0.5?'dove':'intern', 900, 'decoy'));
+  } else if (elapsed - S.lastGold > 12000 && r < 0.30){      // golden press conference, worth x5, very brief
+    S.lastGold = elapsed;
+    S.moles.push(new Mole(rnd(free), rnd(S.mode.chars), 420, 'gold'));
+  } else {
+    const charId = rnd(S.mode.chars);
+    const c = CHARACTERS[charId];
+    const vis = c.popMs[0] + (c.popMs[1]-c.popMs[0])*p;
+    S.moles.push(new Mole(rnd(free), charId, vis));
+  }
+  // spawn interval tightens as the round goes on
+  S.nextSpawn = 520 - 300*p + Math.random()*200;
+}
+function endGame(){
+  S.screen='end';
+  if (S.score>best){ best=S.score; saveBest(); S.newBest=true; } else S.newBest=false;
+  S.loser = S.mode.chars.length===1 ? S.mode.chars[0] : (Math.random()<0.5?'tronk':'poutine');
+}
+
+// ───────────── INPUT ─────────────
+function toLogical(e){
+  const r = cv.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return { x:(t.clientX-r.left)*W/r.width, y:(t.clientY-r.top)*H/r.height };
+}
+function onTap(e){
+  e.preventDefault();
+  const p = toLogical(e);
+  if (S.screen==='menu'){
+    MODES.forEach((m,i)=>{ const b=menuButton(i); if (inRect(p,b)) startGame(m); });
+  } else if (S.screen==='play'){
+    S.whacks.push({x:p.x,y:p.y,t:0});
+    let got=false;
+    for (const m of S.moles){
+      const h=holePos(m.hole);
+      const up=m.up;
+      if (up>0.35 && Math.hypot(p.x-h.x, p.y-(h.y-45*up)) < 62 && m.whack()){
+        got=true;
+        if (m.kind==='decoy'){
+          const pen = DECOYS[m.char].penalty; S.score=Math.max(0,S.score-pen); S.combo=0; sfx.bad();
+          S.fx.push({kind:'pts', x:h.x, y:h.y-90, t:0, text:'-'+pen+' '+DECOYS[m.char].name.toUpperCase()+'!', color:'#ff5a4a'});
+          S.shake=300;
+        } else {
+          S.combo++; S.hits++;
+          let pts = 1 + Math.floor(S.combo/5);          // +1 per 5-combo
+          if (m.kind==='gold'){ pts *= GOLD_MULT; sfx.gold(); S.shake=250; } else sfx.bonk();
+          S.score += pts;
+          S.fx.push({kind:'pts', x:h.x, y:h.y-90, t:0, text:'+'+pts + (S.combo>=5?'  x'+S.combo:''), color: m.kind==='gold'?'#fff3b0':'#f2b632'});
+          S.fx.push({kind:'stars', x:h.x, y:h.y-60, t:0});
+        }
+        break;
+      }
+    }
+    if (!got){ S.combo=0; sfx.whiff(); }
+  } else if (S.screen==='end'){
+    if (inRect(p, endButton(0))) S.screen='menu';
+    else if (inRect(p, endButton(1))) share();
+  }
+}
+cv.addEventListener('touchstart', onTap, {passive:false});
+cv.addEventListener('mousedown', e=>{ if (!('ontouchstart' in window)) onTap(e); });
+function inRect(p,b){ return p.x>=b.x && p.x<=b.x+b.w && p.y>=b.y && p.y<=b.y+b.h; }
+function menuButton(i){ return { x:50, y:330+i*110, w:320, h:90 }; }
+function endButton(i){ return { x:50+i*170, y:600, w:150, h:70 }; }
+function share(){
+  const txt = `I bonked ${S.score} presidents in Whack-a-President (${S.mode.label} mode). Rank: ${rank(S.score)}. Beat that.`;
+  if (navigator.share) navigator.share({ text: txt, url: location.href }).catch(()=>{});
+  else { try { navigator.clipboard.writeText(txt+' '+location.href); S.fx.push({kind:'toast', t:0, text:'Copied!'}); } catch(e){} }
+}
+function rank(s){ let r=RANKS[0][1]; for (const [n,t] of RANKS) if (s>=n) r=t; return r; }
+
+// ───────────── UPDATE ─────────────
+function update(dt){
+  if (S.screen!=='play') return;
+  S.timeLeft -= dt;
+  if (S.timeLeft<=0){ S.timeLeft=0; endGame(); return; }
+  S.nextSpawn -= dt; if (S.nextSpawn<=0) spawn();
+  for (const m of S.moles) m.update(dt);
+  S.moles = S.moles.filter(m=>!m.dead);
+  if (S.mode.id==='summit'){
+    S.banterAt -= dt;
+    if (S.banterAt<=0){
+      S.banterAt = 5000 + Math.random()*3000;
+      const [who, line] = rnd(SUMMIT_BANTER);
+      const m = S.moles.find(x=>x.char===who && x.state==='up');
+      if (m) m.say(line, 1400, true);
+    }
+  }
+  for (const b of S.bubbles) b.ttl-=dt; S.bubbles = S.bubbles.filter(b=>b.ttl>0);
+  for (const f of S.fx) f.t+=dt; S.fx = S.fx.filter(f=>f.t < (f.kind==='toast'?1500:700));
+  if (S.shake>0) S.shake-=dt;
+  for (const w of S.whacks) w.t+=dt; S.whacks = S.whacks.filter(w=>w.t<220);
+}
+
+// ───────────── DRAW ─────────────
+const DISPLAY = 'Bangers, Impact, "Arial Black", sans-serif', HAND = '"Patrick Hand", "Comic Sans MS", cursive';
+function text(str, x, y, size, color, align='center', font=DISPLAY, stroke){
+  ctx.font = font.startsWith('bold ') ? `bold ${size}px ${font.slice(5)}` : `${size}px ${font}`; ctx.textAlign=align; ctx.textBaseline='middle';
+  if (stroke){ ctx.lineWidth=size/7; ctx.strokeStyle=stroke; ctx.lineJoin='round'; ctx.strokeText(str,x,y); }
+  ctx.fillStyle=color; ctx.fillText(str,x,y);
+}
+function rrect(x,y,w,h,r){ ctx.beginPath(); ctx.roundRect(x,y,w,h,r); }
+
+function drawBackground(){
+  ctx.fillStyle='#2f7a3b'; ctx.fillRect(0,0,W,H);
+  // lawn stripes
+  for (let y=0;y<H;y+=40){ ctx.fillStyle = (y/40)%2 ? '#2a6e35' : '#2f7a3b'; ctx.fillRect(0,y,W,40); }
+  // podium band at the top like a press-room backdrop
+  ctx.fillStyle='#25467e'; ctx.fillRect(0,0,W,150);
+  ctx.fillStyle='#1c365f'; for (let x=0;x<W;x+=28) ctx.fillRect(x,0,14,150);
+}
+function drawHole(x,y){
+  ctx.fillStyle='#3a2414'; ctx.beginPath(); ctx.ellipse(x,y+8,58,26,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#5a3a22'; ctx.beginPath(); ctx.ellipse(x,y,58,26,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1b1410'; ctx.beginPath(); ctx.ellipse(x,y,46,18,0,0,Math.PI*2); ctx.fill();
+}
+function drawHoleFront(x,y){ // rim drawn over the character so he looks inside the hole
+  ctx.fillStyle='#5a3a22'; ctx.beginPath(); ctx.ellipse(x,y+2,58,26,0,Math.PI*0.08,Math.PI*0.92); ctx.lineTo(x-58,y+2); ctx.fill();
+  ctx.fillStyle='#3a2414'; ctx.beginPath(); ctx.ellipse(x,y+10,58,26,0,Math.PI*0.05,Math.PI*0.95); ctx.fill();
+}
+
+// Original caricatures: two invented leaders, drawn from primitives.
+function drawTronk(x,y,hit){
+  const c=CHARACTERS.tronk;
+  ctx.save(); ctx.translate(x,y);
+  if (hit){ ctx.scale(1.15,0.8); }
+  // jacket + tie
+  ctx.fillStyle=c.jacket; rrect(-42,20,84,60,14); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(-14,20); ctx.lineTo(0,50); ctx.lineTo(14,20); ctx.fill();
+  ctx.fillStyle=c.tie; ctx.beginPath(); ctx.moveTo(-7,24); ctx.lineTo(7,24); ctx.lineTo(9,70); ctx.lineTo(0,80); ctx.lineTo(-9,70); ctx.fill(); // the very long tie
+  // tiny hands
+  ctx.fillStyle=c.skin; ctx.beginPath(); ctx.arc(-44,48,7,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(44,48,7,0,7); ctx.fill();
+  // head
+  ctx.fillStyle=c.skin; rrect(-36,-44,72,70,22); ctx.fill();
+  // pale eye zone (tan-line goggles)
+  ctx.fillStyle='#fbd7a2'; ctx.beginPath(); ctx.ellipse(-14,-16,13,9,0,0,7); ctx.fill(); ctx.beginPath(); ctx.ellipse(14,-16,13,9,0,0,7); ctx.fill();
+  // eyes
+  ctx.fillStyle='#1b1410';
+  if (hit){ ctx.lineWidth=3; ctx.strokeStyle='#1b1410'; ctx.beginPath(); ctx.moveTo(-20,-22); ctx.lineTo(-8,-12); ctx.moveTo(-8,-22); ctx.lineTo(-20,-12); ctx.moveTo(8,-22); ctx.lineTo(20,-12); ctx.moveTo(20,-22); ctx.lineTo(8,-12); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.arc(-14,-16,3,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(14,-16,3,0,7); ctx.fill(); }
+  // squint brows
+  ctx.lineWidth=3; ctx.strokeStyle='#c98a3a'; ctx.beginPath(); ctx.moveTo(-26,-28); ctx.lineTo(-4,-24); ctx.moveTo(4,-24); ctx.lineTo(26,-28); ctx.stroke();
+  // mouth: pout, or O when hit
+  if (hit){ ctx.fillStyle='#7a2a20'; ctx.beginPath(); ctx.ellipse(0,10,9,11,0,0,7); ctx.fill(); }
+  else { ctx.fillStyle='#c9836a'; ctx.beginPath(); ctx.ellipse(0,10,10,5,0,0,7); ctx.fill(); }
+  // the hair: a swoop that defies physics
+  ctx.fillStyle=c.hair;
+  ctx.beginPath();                                   // helmet: covers top of head, sides flare slightly
+  ctx.moveTo(-38,-30); ctx.quadraticCurveTo(-42,-58,-12,-62); ctx.quadraticCurveTo(14,-66,36,-58);
+  ctx.quadraticCurveTo(46,-52,40,-40);               // right side comes down over the temple
+  ctx.quadraticCurveTo(30,-46,14,-46);               // scalloped fringe across the forehead
+  ctx.quadraticCurveTo(0,-40,-12,-46); ctx.quadraticCurveTo(-26,-50,-38,-30); ctx.closePath(); ctx.fill();
+  ctx.beginPath();                                   // the forward swoop, sweeping up-left to a point
+  ctx.moveTo(-20,-52); ctx.quadraticCurveTo(-10,-74,26,-70); ctx.quadraticCurveTo(50,-66,46,-56);
+  ctx.quadraticCurveTo(30,-60,12,-56); ctx.quadraticCurveTo(-4,-52,-20,-52); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#d9b84a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-10,-58); ctx.quadraticCurveTo(10,-66,34,-62); ctx.stroke(); // parting line
+  ctx.restore();
+}
+function drawPoutine(x,y,hit){
+  const c=CHARACTERS.poutine;
+  ctx.save(); ctx.translate(x,y);
+  if (hit){ ctx.scale(1.15,0.8); }
+  // black suit, wide shoulders, white shirt, red tie
+  ctx.fillStyle='#1a1a1c'; rrect(-46,20,92,60,16); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(-14,20); ctx.lineTo(0,48); ctx.lineTo(14,20); ctx.fill();
+  ctx.fillStyle='#b8202a'; ctx.beginPath(); ctx.moveTo(-6,24); ctx.lineTo(6,24); ctx.lineTo(7,62); ctx.lineTo(0,70); ctx.lineTo(-7,62); ctx.fill();
+  // head: tall pale forehead, small chin
+  ctx.fillStyle=c.skin; ctx.beginPath(); ctx.moveTo(-34,-20); ctx.quadraticCurveTo(-36,-56,0,-58); ctx.quadraticCurveTo(36,-56,34,-20);
+  ctx.quadraticCurveTo(34,14,0,26); ctx.quadraticCurveTo(-34,14,-34,-20); ctx.fill();
+  // sparse pale hair swept straight back, receding at the temples
+  ctx.fillStyle='#cfc3a6'; ctx.beginPath(); ctx.moveTo(-30,-40); ctx.quadraticCurveTo(-24,-60,0,-60); ctx.quadraticCurveTo(24,-60,30,-40);
+  ctx.quadraticCurveTo(22,-48,10,-50); ctx.quadraticCurveTo(0,-52,-10,-50); ctx.quadraticCurveTo(-22,-48,-30,-40); ctx.fill();
+  ctx.strokeStyle='#b8ab8c'; ctx.lineWidth=1.5; ctx.beginPath(); for (let i=-12;i<=12;i+=8){ ctx.moveTo(i,-52); ctx.lineTo(i*1.4,-58); } ctx.stroke();
+  // ears
+  ctx.fillStyle=c.skin; ctx.beginPath(); ctx.ellipse(-35,-14,5,9,0,0,7); ctx.fill(); ctx.beginPath(); ctx.ellipse(35,-14,5,9,0,0,7); ctx.fill();
+  // eyes: narrow slits under low brows, ice-blue glint
+  if (hit){ ctx.lineWidth=3; ctx.strokeStyle='#1b1410'; ctx.beginPath(); ctx.moveTo(-22,-24); ctx.lineTo(-8,-12); ctx.moveTo(-8,-24); ctx.lineTo(-22,-12); ctx.moveTo(8,-24); ctx.lineTo(22,-12); ctx.moveTo(22,-24); ctx.lineTo(8,-12); ctx.stroke(); }
+  else {
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-15,-18,9,3.5,0,0,7); ctx.fill(); ctx.beginPath(); ctx.ellipse(15,-18,9,3.5,0,0,7); ctx.fill();
+    ctx.fillStyle='#5f8fb8'; ctx.beginPath(); ctx.arc(-15,-18,3,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(15,-18,3,0,7); ctx.fill();
+    ctx.fillStyle='#1b1410'; ctx.beginPath(); ctx.arc(-15,-18,1.5,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(15,-18,1.5,0,7); ctx.fill();
+  }
+  ctx.lineWidth=2.5; ctx.strokeStyle='#9a8c70'; ctx.beginPath(); ctx.moveTo(-26,-27); ctx.lineTo(-6,-25); ctx.moveTo(6,-25); ctx.lineTo(26,-27); ctx.stroke();
+  // nose, tiny smirk
+  ctx.strokeStyle='#c9a98a'; ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(3,0); ctx.lineTo(-2,2); ctx.stroke();
+  ctx.strokeStyle='#8a5a48'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(-10,11); ctx.quadraticCurveTo(2,12,12,8); ctx.stroke();
+  ctx.restore();
+}
+function drawDove(x,y,hit){
+  ctx.save(); ctx.translate(x,y); if (hit) ctx.scale(1.1,0.85);
+  ctx.fillStyle='#fffdf5'; ctx.beginPath(); ctx.ellipse(0,20,34,30,0,0,7); ctx.fill();      // body
+  ctx.beginPath(); ctx.ellipse(-26,10,22,10,-0.6,0,7); ctx.fill(); ctx.beginPath(); ctx.ellipse(26,10,22,10,0.6,0,7); ctx.fill(); // wings
+  ctx.beginPath(); ctx.arc(0,-18,20,0,7); ctx.fill();                                              // head
+  ctx.fillStyle='#f2b632'; ctx.beginPath(); ctx.moveTo(14,-18); ctx.lineTo(30,-14); ctx.lineTo(14,-10); ctx.fill(); // beak
+  ctx.fillStyle='#1b1410'; ctx.beginPath(); ctx.arc(6,-22,3,0,7); ctx.fill();
+  ctx.strokeStyle='#4f8a3a'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(30,-12); ctx.quadraticCurveTo(44,-22,50,-10); ctx.stroke(); // olive branch
+  ctx.fillStyle='#4f8a3a'; ctx.beginPath(); ctx.ellipse(44,-18,6,3,0.5,0,7); ctx.fill();
+  ctx.restore();
+}
+function drawIntern(x,y,hit){
+  ctx.save(); ctx.translate(x,y); if (hit) ctx.scale(1.1,0.85);
+  ctx.fillStyle='#6a7fb0'; rrect(-34,20,68,60,12); ctx.fill();                                   // hoodie
+  ctx.fillStyle='#f1dcc4'; rrect(-28,-40,56,62,20); ctx.fill();                                  // face
+  ctx.fillStyle='#4a2f1c'; ctx.beginPath(); ctx.moveTo(-28,-20); ctx.quadraticCurveTo(-26,-50,0,-46); ctx.quadraticCurveTo(28,-50,28,-20); ctx.quadraticCurveTo(10,-30,-6,-24); ctx.quadraticCurveTo(-18,-20,-28,-20); ctx.fill(); // messy hair
+  ctx.strokeStyle='#1b1410'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(-11,-14,8,0,7); ctx.moveTo(19,-14); ctx.arc(11,-14,8,0,7); ctx.stroke(); // glasses
+  ctx.fillStyle='#1b1410'; ctx.beginPath(); ctx.arc(-11,-14,2.5,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(11,-14,2.5,0,7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,6,6,8,0,0,7); ctx.fill();                                        // gasping mouth
+  ctx.fillStyle='#fff'; rrect(-40,30,20,26,4); ctx.fill(); ctx.fillStyle='#6b3e26'; ctx.fillRect(-38,34,16,8); // coffee cup
+  ctx.restore();
+}
+function drawCharacter(id,x,y,hit){
+  ({tronk:drawTronk, poutine:drawPoutine, dove:drawDove, intern:drawIntern})[id](x,y,hit);
+}
+
+function drawBubble(cx, top, str, alpha=1){
+  ctx.save(); ctx.globalAlpha=alpha;
+  const FS=26, LH=30; ctx.font = `bold ${FS}px ${HAND}`;
+  // wrap to ~18 chars
+  const words=str.split(' '), lines=[]; let cur='';
+  for (const w of words){ if ((cur+' '+w).trim().length>14){ lines.push(cur.trim()); cur=w; } else cur+=' '+w; } if (cur.trim()) lines.push(cur.trim());
+  const lw = Math.max(...lines.map(l=>ctx.measureText(l).width)), bw=lw+28, bh=lines.length*LH+16;
+  let bx = Math.max(8, Math.min(W-bw-8, cx-bw/2)); const by = top-bh-14;
+  ctx.fillStyle='#fffdf5'; ctx.strokeStyle='#1b1410'; ctx.lineWidth=3;
+  rrect(bx,by,bw,bh,12); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-8,by+bh-1); ctx.lineTo(cx,by+bh+12); ctx.lineTo(cx+8,by+bh-1); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx-8,by+bh); ctx.lineTo(cx,by+bh+12); ctx.lineTo(cx+8,by+bh); ctx.stroke();
+  ctx.fillStyle='#fffdf5'; ctx.fillRect(cx-7,by+bh-3,14,4);
+  lines.forEach((l,i)=> text(l, bx+bw/2, by+8+LH/2+i*LH, FS, '#1b1410', 'center', 'bold '+HAND));
+  ctx.restore();
+}
+
+function drawMenu(){
+  drawBackground();
+  text('WHACK-A-', W/2, 40, 48, '#fffdf5', 'center', DISPLAY, '#1b1410');
+  text('PRESIDENT', W/2, 86, 48, '#f2b632', 'center', DISPLAY, '#1b1410');
+  drawHole(120,270); drawCharacter('tronk',120,270-40,false); drawHoleFront(120,270);
+  drawHole(300,270); drawCharacter('poutine',300,270-40,false); drawHoleFront(300,270);
+  drawBubble(120, 178, 'Pick me.');
+  drawBubble(300, 178, 'Pick him.');
+  MODES.forEach((m,i)=>{
+    const b=menuButton(i);
+    ctx.fillStyle='#1b1410'; rrect(b.x+4,b.y+6,b.w,b.h,16); ctx.fill();
+    ctx.fillStyle = i===2 ? '#f2b632' : (i===0 ? '#f4a24a' : '#e9c3a0'); rrect(b.x,b.y,b.w,b.h,16); ctx.fill();
+    ctx.lineWidth=3; ctx.strokeStyle='#1b1410'; ctx.stroke();
+    text(m.label, b.x+b.w/2, b.y+32, 34, '#1b1410');
+    text(m.sub, b.x+b.w/2, b.y+64, 20, '#1b1410', 'center', HAND);
+  });
+  text(`Best: ${best}  ·  60 seconds  ·  tap to bonk`, W/2, 680, 22, '#fffdf5', 'center', HAND);
+  text('Spare the dove and the intern. Gold = x5.', W/2, 710, 20, '#f2b632', 'center', HAND);
+}
+function drawPlay(){
+  drawBackground();
+  // HUD
+  text('SCORE', 60, 40, 24, '#c9d6ee'); text(S.score, 60, 80, 44, '#fffdf5', 'center', DISPLAY, '#1b1410');
+  const secs = Math.ceil(S.timeLeft/1000);
+  text('TIME', W/2, 40, 24, '#c9d6ee'); text(secs, W/2, 80, 44, secs<=10?'#f2b632':'#fffdf5', 'center', DISPLAY, '#1b1410');
+  text('COMBO', W-60, 40, 24, '#c9d6ee'); text('x'+S.combo, W-60, 80, 44, S.combo>=5?'#f2b632':'#fffdf5', 'center', DISPLAY, '#1b1410');
+  text(secs<=10 ? 'FINAL FRENZY!' : S.mode.label+' MODE', W/2, 125, 22, secs<=10?'#ff5a4a':'#f2b632');
+  // holes, back-to-front by row
+  const byHole = new Map(S.moles.map(m=>[m.hole,m]));
+  for (let i=0;i<GRID*GRID;i++){
+    const h=holePos(i); drawHole(h.x,h.y);
+    const m=byHole.get(i);
+    if (m){
+      const up=m.up;
+      if (m.kind==='gold'){ const g=ctx.createRadialGradient(h.x,h.y-40,10,h.x,h.y-40,110); g.addColorStop(0,'rgba(255,230,120,0.75)'); g.addColorStop(1,'rgba(255,230,120,0)'); ctx.fillStyle=g; ctx.fillRect(h.x-110,h.y-150,220,160); }
+      ctx.save(); ctx.beginPath(); ctx.rect(h.x-70,h.y-200,140,200); ctx.clip();   // clip below the hole rim
+      drawCharacter(m.char, h.x, h.y+70-110*up, m.hit);
+      if (m.kind==='gold' && up>0.8){ ctx.fillStyle='#4a4a4a'; ctx.fillRect(h.x-6,h.y-30,12,60); ctx.fillStyle='#1b1410'; rrect(h.x-14,h.y-46,28,20,6); ctx.fill(); } // microphone
+      ctx.restore();
+    }
+    drawHoleFront(h.x,h.y);
+  }
+  for (const b of S.bubbles) drawBubble(b.x, b.y, b.text, Math.min(1, b.ttl/250));
+  // hammer flash + effects
+  for (const w of S.whacks){ const k=1-w.t/220; ctx.strokeStyle=`rgba(255,255,255,${k})`; ctx.lineWidth=6; ctx.beginPath(); ctx.arc(w.x,w.y,20+30*(1-k),0,7); ctx.stroke(); }
+  for (const f of S.fx){
+    if (f.kind==='pts') text(f.text, f.x, f.y - f.t/12, 30, f.color||'#f2b632', 'center', DISPLAY, '#1b1410');
+    if (f.kind==='stars'){ const k=f.t/700; for (let i=0;i<6;i++){ const a=i/6*Math.PI*2; text('★', f.x+Math.cos(a)*50*k, f.y+Math.sin(a)*35*k-20*k, 22-14*k, '#fffdf5'); } }
+    if (f.kind==='toast') text(f.text, W/2, 560, 26, '#fffdf5', 'center', DISPLAY, '#1b1410');
+  }
+}
+function drawEnd(){
+  drawBackground();
+  text('TIME!', W/2, 70, 60, '#f2b632', 'center', DISPLAY, '#1b1410');
+  ctx.fillStyle='#fffdf5'; rrect(30,130,360,430,20); ctx.fill(); ctx.lineWidth=4; ctx.strokeStyle='#1b1410'; ctx.stroke();
+  text('OFFICIAL BONK REPORT', W/2, 165, 24, '#25467e');
+  text(S.score, W/2, 240, 96, '#d8352b', 'center', DISPLAY, '#1b1410');
+  text('presidents bonked', W/2, 300, 22, '#1b1410', 'center', HAND);
+  text(rank(S.score), W/2, 345, 30, '#1b1410');
+  text(`${S.hits} bonks · ${S.misses} escaped · best ${best}` + (S.newBest?'  ★ NEW BEST':''), W/2, 385, 20, '#1b1410', 'center', HAND);
+  const loser = S.loser;
+  drawHole(W/2, 500); ctx.save(); ctx.beginPath(); ctx.rect(W/2-70,300,140,200); ctx.clip(); drawCharacter(loser, W/2, 460, false); ctx.restore(); drawHoleFront(W/2,500);
+  drawBubble(W/2, 400, loser==='tronk' ? 'Rigged. Totally rigged.' : 'This did not happen.');
+  ['AGAIN','SHARE'].forEach((l,i)=>{ const b=endButton(i); ctx.fillStyle='#1b1410'; rrect(b.x+4,b.y+6,b.w,b.h,14); ctx.fill(); ctx.fillStyle=i?'#f2b632':'#f4a24a'; rrect(b.x,b.y,b.w,b.h,14); ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle='#1b1410'; ctx.stroke(); text(l,b.x+b.w/2,b.y+36,30,'#1b1410'); });
+}
+// ───────────── LOOP ─────────────
+function frame(ts){
+  const dt = Math.min(50, ts - (S.last||ts)); S.last = ts;
+  update(dt);
+  ctx.setTransform(scale,0,0,scale,0,0);
+  if (S.screen==='play' && S.shake>0){ const k=S.shake/300*6; ctx.translate((Math.random()-0.5)*k,(Math.random()-0.5)*k); }
+  if (S.screen==='menu') drawMenu(); else if (S.screen==='play') drawPlay(); else drawEnd();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
