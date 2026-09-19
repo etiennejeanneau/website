@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<article class="prose narrow">
-  <h1>Clean-up on aisle 404</h1>
-  <p>That page isn't here. The games are, though: <a href="/">back to the list</a>.</p>
+{# One 404 file serves the whole site, so it says it in every language. #}
+<article class="prose narrow notfound">
+  {% for l in languages %}
+  <section lang="{{ l.key }}">
+    <h1>{{ l.strings.notfound_title }}</h1>
+    <p>{{ l.strings.notfound_body }} <a href="{{ l.home }}">{{ l.strings.notfound_link }}</a>.</p>
+  </section>
+  {% endfor %}
 </article>
 {% endblock %}

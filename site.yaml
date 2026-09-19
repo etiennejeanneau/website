@@ -1,11 +1,8 @@
 # Site-wide settings. Everything the build needs that is not content.
 title: ohlala.cloud
-tagline: Silly little games, vibe coded in the evening.
-description: >-
-  Free browser games for your phone, made by describing them to an AI and
-  playing the result. Every game comes with the story of its prompts.
 url: https://ohlala.cloud
-language: en
+# The tagline, the description and every other word that changes with the
+# language live in languages.yaml.
 author:
   name: Etienne
   url: https://ohlala.cloud/about/

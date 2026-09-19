@@ -3,7 +3,7 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
  {"@type":"VideoGame","name":"{{ page.title }}","url":"{{ site.url }}{{ page.play_url }}","description":"{{ page.tagline }}","genre":"{{ page.meta.tags | join(', ') }}","gamePlatform":["Web browser","Mobile"],"applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"},"datePublished":"{{ page.date | isodate }}"},
- {"@type":"Article","headline":"How {{ page.title }} was made","url":"{{ site.url }}{{ page.url }}","datePublished":"{{ page.date | isodate }}","author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"},"description":"{{ page.tagline }}","image":"{{ site.url }}/og/{{ page.slug }}.png"}
+ {"@type":"Article","headline":"{{ t.story_headline.format(title=page.title) }}","url":"{{ site.url }}{{ page.url }}","inLanguage":"{{ lang }}","datePublished":"{{ page.date | isodate }}","author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"},"description":"{{ page.tagline }}","image":"{{ site.url }}{{ page.og_path }}"}
 ]}
 </script>
 {% endblock %}
@@ -13,13 +13,13 @@
     <h1>{{ page.title }}</h1>
     <p class="lead">{{ page.tagline }}</p>
     <p class="stats">
-      {% if page.meta.iterations %}<span><b>{{ page.meta.iterations }}</b> iterations</span>{% endif %}
-      {% if page.meta.prompts %}<span><b>{{ page.meta.prompts }}</b> prompts</span>{% endif %}
+      {% if page.meta.iterations %}<span><b>{{ page.meta.iterations }}</b> {{ t.iterations }}</span>{% endif %}
+      {% if page.meta.prompts %}<span><b>{{ page.meta.prompts }}</b> {{ t.prompts }}</span>{% endif %}
       {% if page.meta.session %}<span>{{ page.meta.session }}</span>{% endif %}
       <span>{{ page.date | nicedate }}</span>
     </p>
-    <a class="button" href="{{ page.play_url }}">▶ Play {{ page.title }}</a>
-    <p class="hint">Best on a phone, portrait. Opens full screen; use your browser's back button to return.</p>
+    <a class="button" href="{{ page.play_url }}"><span aria-hidden="true">▶</span> {{ t.play_title.format(title=page.title) }}</a>
+    <p class="hint">{{ t.play_hint }}</p>
   </header>
 
   <div class="game-layout">
@@ -33,14 +33,14 @@
 
   {% if site.tally_form_id %}
   <section class="feedback">
-    <h2>Did it make you smile, or swear?</h2>
-    <iframe data-tally-src="https://tally.so/embed/{{ site.tally_form_id }}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" loading="lazy" width="100%" height="300" frameborder="0" title="Feedback"></iframe>
+    <h2>{{ t.feedback_heading }}</h2>
+    <iframe data-tally-src="https://tally.so/embed/{{ site.tally_form_id }}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" loading="lazy" width="100%" height="300" frameborder="0" title="{{ t.feedback_heading }}"></iframe>
     <script async src="https://tally.so/widgets/embed.js"></script>
   </section>
   {% endif %}
 
   <nav class="more">
-    <h2>More games</h2>
+    <h2>{{ t.more_heading }}</h2>
     <ul>
     {% for g in games if g.slug != page.slug %}
       <li><a href="{{ g.url }}">{{ g.title }}</a> — {{ g.tagline }}</li>

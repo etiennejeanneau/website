@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 {% block head %}
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","name":"{{ site.title }}","url":"{{ site.url }}/","description":"{{ site.description | trim }}","author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"}}
+{"@context":"https://schema.org","@type":"WebSite","name":"{{ site.title }}","url":"{{ site.url }}{{ home }}","description":"{{ t.description | trim }}","inLanguage":"{{ lang }}","author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"}}
 </script>
 {% endblock %}
 {% block content %}
 <section class="hero">
-  <h1>{{ site.tagline }}</h1>
-  <p>Free games for your phone. Each one was built by describing it to an AI, playing the result, and complaining until it was fun. No accounts, no downloads, nothing stored but your best score. <a href="/about/">How it works →</a></p>
+  <h1>{{ t.tagline }}</h1>
+  <p>{{ t.hero }} <a href="{{ prefix }}/about/">{{ t.hero_link }}</a></p>
 </section>
 
 <section id="games">
-  <h2>Games</h2>
+  <h2>{{ t.games_heading }}</h2>
   <div class="grid">
   {% for g in games %}
     <article class="card" style="--accent: {{ site.og_colors.get(g.slug, site.og_colors.default) }}">
-      <a class="card-play" href="{{ g.play_url }}" aria-label="Play {{ g.title }}">
+      <a class="card-play" href="{{ g.play_url }}" aria-label="{{ t.play_title.format(title=g.title) }}">
         <span class="card-title">{{ g.title }}</span>
-        <span class="card-cta">▶ Play</span>
+        <span class="card-cta"><span aria-hidden="true">▶</span> {{ t.play }}</span>
       </a>
       <div class="card-body">
         <p>{{ g.tagline }}</p>
         <p class="stats">
-          {% if g.meta.iterations %}<span>{{ g.meta.iterations }} iterations</span>{% endif %}
-          {% if g.meta.prompts %}<span>{{ g.meta.prompts }} prompts</span>{% endif %}
+          {% if g.meta.iterations %}<span>{{ g.meta.iterations }} {{ t.iterations }}</span>{% endif %}
+          {% if g.meta.prompts %}<span>{{ g.meta.prompts }} {{ t.prompts }}</span>{% endif %}
         </p>
-        <a class="story-link" href="{{ g.url }}">Read how it was made →</a>
+        <a class="story-link" href="{{ g.url }}">{{ t.story_link }}</a>
       </div>
     </article>
   {% endfor %}

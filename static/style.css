@@ -15,10 +15,20 @@ h1, h2, h3 { line-height: 1.15; letter-spacing: -0.01em; }
 h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 .4em; }
 h2 { font-size: 1.35rem; margin: 2em 0 .6em; }
 
-.top { display: flex; align-items: center; justify-content: space-between; max-width: 1040px; margin: 0 auto; padding: 18px 16px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; max-width: 1040px; margin: 0 auto; padding: 18px 16px; }
 .brand { font-weight: 800; text-decoration: none; color: var(--fg); font-size: 1.15rem; }
+.top nav { display: flex; align-items: center; }
 .top nav a { margin-left: 18px; text-decoration: none; color: var(--muted); font-weight: 600; }
 .top nav a:hover { color: var(--fg); }
+
+/* Language menu: one small pill per language, the current one filled in. */
+.langs { display: inline-flex; margin-left: 16px; padding: 2px; gap: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); }
+.top nav .langs a { margin: 0; padding: 3px 9px; border-radius: 999px; font-size: .8rem; font-weight: 700; letter-spacing: .02em; }
+.top nav .langs a.is-current { background: var(--fg); color: var(--bg); }
+@media (max-width: 380px) {
+  .top nav a { margin-left: 12px; }
+  .langs { margin-left: 12px; }
+}
 
 .hero { padding: 24px 0 8px; max-width: 680px; }
 .hero p { color: var(--muted); font-size: 1.05rem; }
@@ -58,6 +68,8 @@ h2 { font-size: 1.35rem; margin: 2em 0 .6em; }
 .feedback { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); max-width: 680px; }
 .more { margin-top: 48px; padding-top: 12px; border-top: 1px solid var(--line); }
 .more ul { padding-left: 1.2em; }
+
+.notfound section + section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
 
 footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; padding: 20px 16px 40px; text-align: center; }
 footer a { color: inherit; }
