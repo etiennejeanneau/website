@@ -32,6 +32,15 @@ Everything else in its front matter (game, date, iterations, prompts, tags,
 draft) is inherited from the same slug in the default language, so the numbers
 can never drift between two versions of the same story.
 
+Feedback form
+-------------
+Nothing on this site can receive a form: there is no server. So the feedback
+block built into every page (templates/feedback.html) is a link to a form
+hosted by Tally, which emails the answers. site.yaml's tally_form_id switches
+it on; empty means no block at all. It is a link and not an embedded form on
+purpose, so that no page here loads anything from another site until a visitor
+chooses to click.
+
 Content model (front matter keys)
 ---------------------------------
 title        required
@@ -206,6 +215,12 @@ def verification_token(value: object) -> str:
     return m.group(1) if m else text
 
 
+def tally_id(value: object) -> str:
+    """Accept the form id (wkKqJb) or the whole address Tally shows you."""
+    text = str(value or "").strip().rstrip("/")
+    return text.rsplit("/", 1)[-1]
+
+
 def load_languages() -> list[Lang]:
     data = yaml.safe_load((ROOT / "languages.yaml").read_text(encoding="utf-8"))
     default = str(data.get("default") or "")
@@ -220,6 +235,7 @@ def load_languages() -> list[Lang]:
 def load(include_drafts: bool) -> Site:
     config = yaml.safe_load((ROOT / "site.yaml").read_text(encoding="utf-8"))
     config["google_site_verification"] = verification_token(config.get("google_site_verification"))
+    config["tally_form_id"] = tally_id(config.get("tally_form_id"))
 
     langs = load_languages()
     pages: list[Page] = []
@@ -285,6 +301,13 @@ def validate(site: Site) -> None:
     client = str(site.config.get("adsense_client") or "").strip()
     if client and not re.fullmatch(r"ca-pub-\d{16}", client):
         sys.exit(f"site.yaml: adsense_client should look like ca-pub-0000000000000000, got '{client}'")
+
+    # No feedback form is a choice, not a mistake; a mistyped one is a mistake.
+    form = str(site.config.get("tally_form_id") or "")
+    if not form:
+        print("note: site.yaml has no tally_form_id, so no page gets a feedback button")
+    elif not re.fullmatch(r"[A-Za-z0-9]{4,24}", form):
+        sys.exit(f"site.yaml: tally_form_id should look like wkKqJb, got '{form}'")
 
 
 # ---------------------------------------------------------------- render

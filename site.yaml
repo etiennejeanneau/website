@@ -7,9 +7,13 @@ author:
   name: Etienne
   url: https://ohlala.cloud/about/
 
-# Feedback / "what next" form. Create a form on tally.so and paste its id.
-# Leave empty to hide the feedback block.
-tally_form_id: ""
+# Feedback form. Create a form on tally.so, then paste here either its id
+# (the last part of its address, like wkKqJb) or the whole address. A button to
+# it then appears at the bottom of every page, and Tally emails you each
+# answer. Empty = no button anywhere, which is the state the site ships in.
+# The form needs two hidden fields named exactly "Page" and "Lang"; each answer
+# then says which page it was sent from and in which language. See the README.
+tally_form_id: "https://tally.so/r/b5aNoo"
 
 # Google Search Console ownership token. Normally empty: the site is verified
 # by a DNS record in the Route 53 zone, nothing is needed here. Fill it only if
