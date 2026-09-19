@@ -115,9 +115,11 @@ Once, in Tally:
 
 1. Make a form. Two questions are plenty: *what did you think?* and *which game
    was it?*
-2. Add two hidden fields, named exactly `page` and `lang` (type `/hidden` in the
-   editor to get one). The site fills them in, so each answer tells you which
-   page it was sent from and in which language it was read.
+2. Add two hidden fields, named exactly `Page` and `Lang`, capitals included
+   (type `/hidden` in the editor to get one). The site fills them in, so each
+   answer tells you which page it was sent from and in which language it was
+   read. The names have to match what `templates/feedback.html` sends; rename
+   them on Tally and they arrive empty until the template is changed too.
 3. Publish it, then under **Integrations → Email notifications** send yourself
    an email on every answer. Slack and webhooks are in the same place if you
    prefer.

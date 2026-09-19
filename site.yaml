@@ -11,9 +11,9 @@ author:
 # (the last part of its address, like wkKqJb) or the whole address. A button to
 # it then appears at the bottom of every page, and Tally emails you each
 # answer. Empty = no button anywhere, which is the state the site ships in.
-# Give the form two hidden fields named "page" and "lang" and each answer
-# arrives saying which page it was sent from. See the README.
-tally_form_id: ""
+# The form needs two hidden fields named exactly "Page" and "Lang"; each answer
+# then says which page it was sent from and in which language. See the README.
+tally_form_id: "https://tally.so/r/b5aNoo"
 
 # Google Search Console ownership token. Normally empty: the site is verified
 # by a DNS record in the Route 53 zone, nothing is needed here. Fill it only if
