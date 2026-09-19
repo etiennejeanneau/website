@@ -1,0 +1,191 @@
+{# The share button the site adds to every game.
+
+   build.py slips this block in just before </body> when it copies a game to
+   /play/<slug>/. The file in games/ is never touched: it stays exactly the
+   game that was vibe coded, and still plays on its own with none of this.
+
+   It does two things, both aimed at the same thing — a shared score should
+   bring someone back here:
+
+   1. It puts a small Share button in the corner of every game. Tapping it
+      sends a sentence and the address of the game's page on the site, with
+      the player's best score in it when the game keeps one (site.yaml says
+      where).
+   2. It fixes the Share score buttons the games already have. Those send the
+      address of the file they are running in — the bare game, a page with no
+      title, no picture and no way back to the rest of the site. The message
+      keeps its score; only the link is swapped.
+#}
+<style>
+#ohlala-share {
+  position: fixed; z-index: 2147483000;
+  right: calc(10px + env(safe-area-inset-right, 0px));
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 6px;
+  margin: 0; padding: 7px 11px;
+  font: 600 13px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #fff; background: rgba(16, 16, 20, .72);
+  border: 1px solid rgba(255, 255, 255, .3); border-radius: 999px;
+  cursor: pointer; opacity: .78;
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  -webkit-tap-highlight-color: transparent;
+}
+#ohlala-share:hover, #ohlala-share:focus-visible { opacity: 1; }
+#ohlala-share:active { transform: translateY(1px); }
+#ohlala-share svg { display: block; flex: none; }
+</style>
+<button id="ohlala-share" type="button" hidden>
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M12 3v13"/><path d="m7 8 5-5 5 5"/></svg>
+  <span id="ohlala-share-label"></span>
+</button>
+<script>
+(function () {
+  "use strict";
+  var LINK = {{ share_url | tojson }};          // the game's page on the site
+  var TITLE = {{ page.title | tojson }};
+  var WORDS = {{ words | tojson }};             // one block per language
+  var FALLBACK = {{ default_lang | tojson }};
+  var SCORE = {{ score | tojson }};             // where the best score is kept, or null
+
+  var btn = document.getElementById("ohlala-share");
+  var label = document.getElementById("ohlala-share-label");
+
+  // The player's language, chosen the way the rest of the site chooses it:
+  // the flag they last clicked, kept in this browser, then the browser's own
+  // preference, then the site's default.
+  function words() {
+    var tries = [];
+    try { tries.push(localStorage.getItem("ohlala-lang") || ""); } catch (e) { /* private mode */ }
+    tries = tries.concat(navigator.languages || [navigator.language || ""]);
+    for (var i = 0; i < tries.length; i++) {
+      var key = String(tries[i] || "").slice(0, 2).toLowerCase();
+      if (WORDS[key]) return WORDS[key];
+    }
+    return WORDS[FALLBACK];
+  }
+  var W = words();
+
+  // Addresses of the bare game file, wherever the game got them from.
+  var BARE = /https?:\/\/[^\s]*\/play\/[^\s]*/gi;
+  function tidy(text) {
+    return String(text == null ? "" : text).replace(BARE, "").replace(/\s+/g, " ").trim();
+  }
+
+  // The best score the game wrote in this browser, as the game left it there.
+  function best() {
+    if (!SCORE) return "";
+    var raw;
+    try { raw = localStorage.getItem(SCORE.key); } catch (e) { return ""; }
+    if (!raw) return "";
+    var value = raw;
+    if (SCORE.field) {
+      try { value = JSON.parse(raw)[SCORE.field]; } catch (e) { return ""; }
+    }
+    var n = Math.round(Number(value));
+    if (!isFinite(n) || n <= 0) return "";
+    return W.share_best
+      .replace("{title}", TITLE)
+      .replace("{score}", SCORE.unit ? n + " " + SCORE.unit : String(n));
+  }
+
+  // The last sentence the game itself wrote about a score. It beats the best
+  // score above: it is the round the player has just finished.
+  var latest = "";
+  function remember(text) {
+    var said = tidy(text);
+    if (said) { latest = said; label.textContent = W.share_score; }
+  }
+
+  // The browser's own two ways of sharing, kept aside before they are wrapped.
+  var send = null, copy = null;
+  try { if (navigator.share) send = navigator.share.bind(navigator); } catch (e) { /* blocked */ }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      copy = navigator.clipboard.writeText.bind(navigator.clipboard);
+    }
+  } catch (e) { /* not a secure page */ }
+
+  // From here on, everything a game shares leaves with the link to its page.
+  if (send) {
+    try {
+      navigator.share = function (data) {
+        data = data || {};
+        remember(data.text);
+        return send({ title: data.title || TITLE, text: tidy(data.text), url: LINK });
+      };
+    } catch (e) { /* the browser will not let it be replaced: leave it alone */ }
+  }
+  if (copy) {
+    try {
+      navigator.clipboard.writeText = function (text) {
+        remember(text);
+        var said = tidy(text);
+        return copy(said ? said + " " + LINK : LINK);
+      };
+    } catch (e) { /* same */ }
+  }
+
+  // On a story page the game runs in a little phone beside the text, so the
+  // page the button would link to is the one already open. No button there.
+  if (window.top !== window.self) return;
+  if (!send && !copy) return;
+
+  var scored = best();
+  label.textContent = scored ? W.share_score : W.share_button;
+  btn.hidden = false;
+
+  // A couple of games keep a row of their own buttons along the bottom. Look
+  // at what is really down there and step above it, rather than sit on it.
+  // Anything a game draws inside its canvas cannot be seen from here, but in
+  // those games the corner is free anyway.
+  function stepAside() {
+    btn.style.bottom = "";
+    var box = btn.getBoundingClientRect();
+    var top = Infinity;
+    var all = document.querySelectorAll("body *");
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (el === btn || btn.contains(el)) continue;
+      var style = getComputedStyle(el);
+      if (style.position !== "fixed" && style.position !== "absolute") continue;
+      if (style.visibility === "hidden") continue;
+      var r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      if (r.height > window.innerHeight * 0.4) continue;   // a whole screen, not a bar
+      if (r.right < box.left || r.left > box.right) continue;
+      if (r.bottom < box.top || r.top > box.bottom) continue;
+      if (r.top < top) top = r.top;
+    }
+    var lift = box.bottom - top + 8;
+    if (top !== Infinity && lift > 0 && lift < window.innerHeight * 0.3) {
+      btn.style.bottom = "calc(" + (10 + lift) + "px + env(safe-area-inset-bottom, 0px))";
+    }
+  }
+  stepAside();
+  window.addEventListener("load", stepAside);     // a game that builds its own bar late
+  window.addEventListener("resize", stepAside);
+
+  var back = 0;
+  function say(word) {
+    label.textContent = word;
+    clearTimeout(back);
+    back = setTimeout(function () {
+      label.textContent = (latest || best()) ? W.share_score : W.share_button;
+    }, 1600);
+  }
+
+  btn.addEventListener("click", function () {
+    var text = latest || best() || W.share_invite.replace("{title}", TITLE);
+    if (send) {
+      send({ title: TITLE, text: text, url: LINK }).catch(function (err) {
+        // Cancelling is not a failure; anything else falls back to copying.
+        if (copy && !(err && err.name === "AbortError")) {
+          copy(text + " " + LINK).then(function () { say(W.share_copied); }, function () {});
+        }
+      });
+    } else {
+      copy(text + " " + LINK).then(function () { say(W.share_copied); }, function () {});
+    }
+  });
+})();
+</script>

@@ -30,6 +30,14 @@ en:
   prompts: prompts
   story_link: Read how it was made →
   story_headline: How {title} was made
+  # The share button the build adds to every game (templates/share.html).
+  # {title} is the game's name, {score} the number the game kept, with its
+  # word after it when site.yaml gives one ("42 crumbs").
+  share_button: Share
+  share_score: Share score
+  share_best: "My best at {title}: {score}."
+  share_invite: "Come play {title} on ohlala.cloud."
+  share_copied: Copied!
   play_hint: >-
     Best on a phone, portrait. Opens full screen; use your browser's back
     button to return.
@@ -72,6 +80,12 @@ fr:
   prompts: prompts
   story_link: Lire comment il a été fait →
   story_headline: Comment {title} a été fait
+  # Le bouton de partage que le build ajoute à chaque jeu.
+  share_button: Partager
+  share_score: Partager mon score
+  share_best: "Mon record à {title} : {score}."
+  share_invite: "Viens jouer à {title} sur ohlala.cloud."
+  share_copied: "Copié !"
   play_hint: >-
     Mieux sur un téléphone, en mode portrait. Le jeu s'ouvre en plein écran ;
     le bouton retour du navigateur ramène ici.

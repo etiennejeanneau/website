@@ -35,3 +35,18 @@ og_colors:
   aisle-be-back: "#b91c1c"
   every-drop-counts: "#0369a1"
   whack-a-president: "#166534"
+
+# Where each game keeps the player's best score, so the share button in the
+# corner of the game can say it (templates/share.html). Every game stores it
+# in the browser itself; this only says under which name.
+#   key    the name the game uses in the browser's local storage
+#   field  when the game keeps several things together, the one that counts
+#   unit   the word that goes after the number, in the game's own English
+# A game missing from this list is not a mistake: its button shares the game
+# without a score, and its own Share score button still works as it always did.
+scores:
+  aisle-be-back:     { key: trolley.best }
+  every-drop-counts: { key: everydrop.best, unit: litres }
+  pigeon-in-paris:   { key: pigeonOfParis.v1, field: best, unit: crumbs }
+  whack-a-president: { key: wap_best, unit: presidents }
+  desktop-tycoon:    { key: dt.save.v3, field: earned, unit: MB freed }
