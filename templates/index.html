@@ -14,8 +14,13 @@
   <h2>{{ t.games_heading }}</h2>
   <div class="grid">
   {% for g in games %}
-    <article class="card" style="--accent: {{ site.og_colors.get(g.slug, site.og_colors.default) }}">
+    <article class="card{{ ' has-shot' if g.shot_url }}" style="--accent: {{ site.og_colors.get(g.slug, site.og_colors.default) }}">
       <a class="card-play" href="{{ g.play_url }}" aria-label="{{ t.play_title.format(title=g.title) }}">
+        {% if g.shot_url %}
+        {# The first picture is the big thing a visitor sees, so it is fetched
+           straight away; the ones further down wait until they are scrolled to. #}
+        <img class="card-shot" src="{{ g.shot_url }}" alt="" decoding="async"{% if not loop.first %} loading="lazy"{% endif %}>
+        {% endif %}
         <span class="card-title">{{ g.title }}</span>
         <span class="card-cta"><span aria-hidden="true">▶</span> {{ t.play }}</span>
       </a>

@@ -26,6 +26,13 @@
     <div class="phone">
       <iframe src="{{ page.play_url }}" title="{{ page.title }}" loading="lazy" allow="clipboard-write; web-share"></iframe>
     </div>
+    {# On a phone the game is not embedded (it wants the whole screen), so the
+       screenshot stands in for it and opens the game when tapped. #}
+    {% if page.shot_url %}
+    <a class="shot" href="{{ page.play_url }}">
+      <img src="{{ page.shot_url }}" alt="{{ t.shot_alt.format(title=page.title) }}">
+    </a>
+    {% endif %}
     <div class="prose">
       {{ page.body_html | safe }}
     </div>

@@ -35,10 +35,24 @@ h2 { font-size: 1.35rem; margin: 2em 0 .6em; }
 
 .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-.card-play { display: flex; flex-direction: column; justify-content: space-between; min-height: 150px; padding: 20px; background: var(--accent); color: #fff; text-decoration: none; }
+.card-play { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 150px; padding: 20px; background: var(--accent); color: #fff; text-decoration: none; }
 .card-title { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
 .card-cta { align-self: flex-start; background: rgba(255,255,255,.18); border-radius: 999px; padding: 6px 14px; font-weight: 700; }
 .card-play:hover .card-cta { background: rgba(255,255,255,.3); }
+
+/* A card with a screenshot: the picture fills the coloured block (a little off
+   the very top, which on most games is an empty score strip), the name and
+   the Play button sit at the bottom of it, and a dark veil under them keeps
+   both readable whatever the game looks like. The top stays clear so the game
+   itself is what you see. Games with no picture keep the plain colour, above. */
+.card.has-shot .card-play { aspect-ratio: 5 / 4; min-height: 0; justify-content: flex-end; gap: 10px; }
+.card-shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; transition: transform .3s ease; }
+.card.has-shot .card-play::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(0,0,0,.2), rgba(0,0,0,0) 28%, rgba(0,0,0,.35) 58%, rgba(0,0,0,.82)); }
+.card.has-shot .card-title, .card.has-shot .card-cta { position: relative; z-index: 1; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+.card.has-shot .card-cta { background: rgba(0,0,0,.45); backdrop-filter: blur(2px); }
+.card.has-shot .card-play:hover .card-cta { background: rgba(0,0,0,.65); }
+.card.has-shot .card-play:hover .card-shot { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) { .card-shot { transition: none; } }
 .card-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
 .card-body p { margin: 0; }
 .stats { color: var(--muted); font-size: .9rem; display: flex; flex-wrap: wrap; gap: 6px 14px; }
@@ -51,10 +65,15 @@ h2 { font-size: 1.35rem; margin: 2em 0 .6em; }
 
 .game-layout { display: grid; gap: 40px; grid-template-columns: 1fr; }
 .phone { display: none; }
+/* On a narrow screen the game is a picture that opens it; from 900px the real
+   game runs beside the story instead, so the picture steps aside. */
+.shot { display: block; width: min(300px, 80%); margin: 0 auto; border: 8px solid #222; border-radius: 30px; overflow: hidden; background: #000; box-shadow: 0 14px 34px rgba(0,0,0,.22); }
+.shot img { display: block; width: 100%; height: auto; }
 @media (min-width: 900px) {
   .game-layout { grid-template-columns: 360px 1fr; align-items: start; }
   .phone { display: block; position: sticky; top: 20px; width: 360px; height: 720px; border: 10px solid #222; border-radius: 34px; overflow: hidden; background: #000; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
   .phone iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .shot { display: none; }
 }
 
 .prose { max-width: 680px; }
