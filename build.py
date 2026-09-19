@@ -4,21 +4,38 @@ Static site builder for ohlala.cloud.
 
 Pipeline
 --------
-1. load()      site.yaml + every content/*.md (YAML front matter + Markdown body)
-2. validate()  slugs unique, every game page points at an existing games/<slug>/index.html
-3. render()    Jinja2 templates -> dist/
-                 /                      home: game grid
-                 /games/<slug>/         story page for one game (+ embedded/linked player)
+1. load()      site.yaml + languages.yaml + every content/<lang>/*.md
+                 (YAML front matter + Markdown body)
+2. validate()  slugs unique per language, every translation has an original,
+               every game page points at an existing games/<slug>/index.html
+3. render()    Jinja2 templates -> dist/, once per language
+                 /                      home: game grid (default language)
+                 /fr/                   same home in French
+                 /games/<slug>/         story page for one game
+                 /fr/games/<slug>/      the same story in French
                  /play/<slug>/          the raw game file, copied untouched
-                 /<slug>/               any other content page (about, ...)
-                 /404.html
-4. extras()    sitemap.xml, robots.txt, ads.txt, llms.txt, feed.xml, og/<slug>.png
+                                        (one copy: games have no language)
+                 /<slug>/, /fr/<slug>/  any other content page (about, ...)
+                 /404.html              one page, all languages on it
+4. extras()    sitemap.xml, robots.txt, ads.txt, llms.txt, feed.xml,
+               og/<slug>.png (per language: og/fr/<slug>.png)
 5. copy()      static/ -> dist/static/
+
+Languages
+---------
+languages.yaml lists them and holds every word that is not part of a page.
+The default language sits at the root, the others under /<key>/. Pages live in
+content/<key>/<slug>.md, one folder per language, same file name on both sides.
+
+A translation only has to carry the words: title, slug, tagline and the body.
+Everything else in its front matter (game, date, iterations, prompts, tags,
+draft) is inherited from the same slug in the default language, so the numbers
+can never drift between two versions of the same story.
 
 Content model (front matter keys)
 ---------------------------------
 title        required
-slug         required, unique, used in the URL
+slug         required, unique inside its language, used in the URL
 date         YYYY-MM-DD; games are listed newest first
 tagline      one line under the title, also the meta description
 game         path to the playable file, e.g. games/aisle-be-back/index.html
@@ -54,13 +71,38 @@ STATIC = ROOT / "static"
 
 FRONT_MATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.S)
 
+# Front matter keys a translation inherits from the default language when it
+# does not set them itself. Only the words are expected in a translated file.
+INHERITED = ("game", "date", "iterations", "prompts", "tags", "draft", "session")
+
 
 # ---------------------------------------------------------------- model
+@dataclass
+class Lang:
+    key: str                 # "en", "fr": the folder, the URL prefix, <html lang>
+    strings: dict            # everything from languages.yaml for this language
+    is_default: bool
+
+    @property
+    def prefix(self) -> str:
+        """URL prefix: "" for the default language, "/fr" for the others."""
+        return "" if self.is_default else f"/{self.key}"
+
+    @property
+    def home(self) -> str:
+        return f"{self.prefix}/"
+
+    @property
+    def name(self) -> str:
+        return self.strings["name"]
+
+
 @dataclass
 class Page:
     slug: str
     title: str
     body_md: str
+    lang: Lang
     meta: dict = field(default_factory=dict)
     source: Path | None = None
 
@@ -81,11 +123,19 @@ class Page:
 
     @property
     def url(self) -> str:
-        return f"/games/{self.slug}/" if self.is_game else f"/{self.slug}/"
+        p = self.lang.prefix
+        return f"{p}/games/{self.slug}/" if self.is_game else f"{p}/{self.slug}/"
 
     @property
     def play_url(self) -> str:
+        """The game itself. One copy for every language: it has no words of ours."""
         return f"/play/{self.slug}/"
+
+    @property
+    def og_path(self) -> str:
+        """Share image, one per language because the tagline is on it."""
+        folder = "og" if self.lang.is_default else f"og/{self.lang.key}"
+        return f"/{folder}/{self.slug}.png"
 
     @property
     def tagline(self) -> str:
@@ -108,23 +158,34 @@ class Page:
 @dataclass
 class Site:
     config: dict
+    langs: list[Lang]
     pages: list[Page]
 
     @property
-    def games(self) -> list[Page]:
-        return sorted((p for p in self.pages if p.is_game), key=lambda p: p.date, reverse=True)
+    def default(self) -> Lang:
+        return next(l for l in self.langs if l.is_default)
 
-    @property
-    def others(self) -> list[Page]:
-        return [p for p in self.pages if not p.is_game]
+    def games(self, lang: Lang) -> list[Page]:
+        pages = (p for p in self.pages if p.is_game and p.lang is lang)
+        return sorted(pages, key=lambda p: p.date, reverse=True)
+
+    def others(self, lang: Lang) -> list[Page]:
+        return [p for p in self.pages if not p.is_game and p.lang is lang]
 
     @property
     def public(self) -> list[Page]:
         return [p for p in self.pages if not p.draft]
 
+    def translation(self, slug: str, lang: Lang) -> Page | None:
+        """The same story in another language, or None if it is not written yet."""
+        for p in self.pages:
+            if p.slug == slug and p.lang is lang:
+                return p
+        return None
+
 
 # ---------------------------------------------------------------- load
-def parse_markdown_file(path: Path) -> Page:
+def parse_markdown_file(path: Path, lang: Lang) -> Page:
     raw = path.read_text(encoding="utf-8")
     m = FRONT_MATTER.match(raw)
     if not m:
@@ -134,7 +195,8 @@ def parse_markdown_file(path: Path) -> Page:
     for key in ("title", "slug"):
         if key not in meta:
             sys.exit(f"{path}: front matter needs '{key}'")
-    return Page(slug=str(meta["slug"]), title=str(meta["title"]), body_md=body, meta=meta, source=path)
+    return Page(slug=str(meta["slug"]), title=str(meta["title"]), body_md=body,
+                lang=lang, meta=meta, source=path)
 
 
 def verification_token(value: object) -> str:
@@ -144,24 +206,65 @@ def verification_token(value: object) -> str:
     return m.group(1) if m else text
 
 
+def load_languages() -> list[Lang]:
+    data = yaml.safe_load((ROOT / "languages.yaml").read_text(encoding="utf-8"))
+    default = str(data.get("default") or "")
+    keys = [k for k in data if k != "default"]
+    if default not in keys:
+        sys.exit(f"languages.yaml: default '{default}' is not one of {keys}")
+    # Default language first: it is the one everything else falls back to.
+    keys.sort(key=lambda k: (k != default, k))
+    return [Lang(key=k, strings=data[k], is_default=(k == default)) for k in keys]
+
+
 def load(include_drafts: bool) -> Site:
     config = yaml.safe_load((ROOT / "site.yaml").read_text(encoding="utf-8"))
     config["google_site_verification"] = verification_token(config.get("google_site_verification"))
-    pages = [parse_markdown_file(p) for p in sorted(CONTENT.glob("*.md"))]
+
+    langs = load_languages()
+    pages: list[Page] = []
+    for lang in langs:
+        folder = CONTENT / lang.key
+        if not folder.is_dir():
+            sys.exit(f"content/{lang.key}/ is missing (languages.yaml lists '{lang.key}')")
+        pages += [parse_markdown_file(p, lang) for p in sorted(folder.glob("*.md"))]
+
+    site = Site(config=config, langs=langs, pages=pages)
+    inherit_meta(site)
     if not include_drafts:
-        pages = [p for p in pages if not p.draft]
-    return Site(config=config, pages=pages)
+        site.pages = [p for p in site.pages if not p.draft]
+    return site
+
+
+def inherit_meta(site: Site) -> None:
+    """A translation says the words; the facts come from the default language."""
+    originals = {p.slug: p for p in site.pages if p.lang is site.default}
+    for p in site.pages:
+        if p.lang is site.default:
+            continue
+        original = originals.get(p.slug)
+        if original is None:
+            continue  # reported by validate()
+        for key in INHERITED:
+            if key not in p.meta and key in original.meta:
+                p.meta[key] = original.meta[key]
 
 
 # ---------------------------------------------------------------- validate
 def validate(site: Site) -> None:
-    seen: dict[str, Path] = {}
+    seen: dict[tuple[str, str], Path] = {}
+    originals = {p.slug for p in site.pages if p.lang is site.default}
     for p in site.pages:
         if not re.fullmatch(r"[a-z0-9-]+", p.slug):
             sys.exit(f"{p.source}: slug '{p.slug}' must be lowercase letters, digits and dashes")
-        if p.slug in seen:
-            sys.exit(f"{p.source}: slug '{p.slug}' already used by {seen[p.slug]}")
-        seen[p.slug] = p.source
+        key = (p.lang.key, p.slug)
+        if key in seen:
+            sys.exit(f"{p.source}: slug '{p.slug}' already used by {seen[key]}")
+        seen[key] = p.source
+        if p.slug != p.source.stem:
+            sys.exit(f"{p.source}: slug '{p.slug}' should match the file name")
+        if p.lang is not site.default and p.slug not in originals:
+            sys.exit(f"{p.source}: no content/{site.default.key}/{p.slug}.md to translate")
         if p.is_game:
             game_file = ROOT / p.meta["game"]
             if not game_file.is_file():
@@ -169,25 +272,76 @@ def validate(site: Site) -> None:
             if not p.meta.get("date"):
                 sys.exit(f"{p.source}: game pages need a 'date'")
 
+    # Missing translations are not an error: the language menu falls back to
+    # the home page of that language. Say it out loud so it is not forgotten.
+    for lang in site.langs:
+        if lang is site.default:
+            continue
+        missing = [p.slug for p in site.pages
+                   if p.lang is site.default and not site.translation(p.slug, lang)]
+        if missing:
+            print(f"note: no {lang.key} version of {', '.join(sorted(missing))}")
+
     client = str(site.config.get("adsense_client") or "").strip()
     if client and not re.fullmatch(r"ca-pub-\d{16}", client):
         sys.exit(f"site.yaml: adsense_client should look like ca-pub-0000000000000000, got '{client}'")
 
 
 # ---------------------------------------------------------------- render
-def make_env(site: Site) -> Environment:
+def make_env(site: Site, lang: Lang) -> Environment:
     env = Environment(
         loader=FileSystemLoader(TEMPLATES),
         autoescape=select_autoescape(["html", "xml"]),
         trim_blocks=True,
         lstrip_blocks=True,
     )
+
+    def alternates(page: Page | None) -> list[dict]:
+        """The same page in every language, for the menu and for hreflang.
+
+        A language that has not translated this page points at its home page
+        instead, and is left out of the hreflang tags (it is not the same page).
+        """
+        out = []
+        for other in site.langs:
+            twin = None if page is None else site.translation(page.slug, other)
+            same = page is None or twin is not None
+            out.append({
+                "key": other.key,
+                "name": other.strings["name"],
+                "short": other.strings["short"],
+                "url": (other.home if page is None else twin.url) if same else other.home,
+                "translated": same,
+                "is_default": other.is_default,
+                "current": other is lang,
+            })
+        return out
+
     env.globals["site"] = site.config
-    env.globals["games"] = [g for g in site.games if not g.draft]
+    env.globals["t"] = lang.strings
+    env.globals["lang"] = lang.key
+    env.globals["prefix"] = lang.prefix
+    env.globals["home"] = lang.home
+    env.globals["og_default"] = "/og/default.png" if lang.is_default else f"/og/{lang.key}/default.png"
+    env.globals["games"] = [g for g in site.games(lang) if not g.draft]
+    env.globals["languages"] = site.langs
+    env.globals["alternates"] = alternates
     env.globals["now"] = dt.datetime.now(dt.timezone.utc)
     env.filters["isodate"] = lambda d: d.isoformat()
-    env.filters["nicedate"] = lambda d: d.strftime("%-d %B %Y")
+    env.filters["nicedate"] = lambda d: nicedate(d, lang.key)
     return env
+
+
+FRENCH_MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
+                 "août", "septembre", "octobre", "novembre", "décembre"]
+
+
+def nicedate(d: dt.date, lang_key: str) -> str:
+    """Dates spelled out, without depending on system locales being installed."""
+    if lang_key == "fr":
+        day = "1er" if d.day == 1 else str(d.day)
+        return f"{day} {FRENCH_MONTHS[d.month - 1]} {d.year}"
+    return d.strftime("%-d %B %Y")
 
 
 def write(out: Path, rel: str, content: str) -> None:
@@ -197,23 +351,34 @@ def write(out: Path, rel: str, content: str) -> None:
 
 
 def render(site: Site, out: Path) -> None:
-    env = make_env(site)
-    write(out, "index.html", env.get_template("index.html").render(page=None))
-    write(out, "404.html", env.get_template("404.html").render(page=None))
+    for lang in site.langs:
+        env = make_env(site, lang)
+        write(out, f"{lang.home}index.html", env.get_template("index.html").render(page=None))
+        for p in site.pages:
+            if p.lang is not lang:
+                continue
+            tpl = env.get_template("game.html" if p.is_game else "page.html")
+            write(out, f"{p.url}index.html", tpl.render(page=p))
+
+    # One copy of each game, shared by every language.
     for p in site.pages:
-        tpl = env.get_template("game.html" if p.is_game else "page.html")
-        write(out, f"{p.url}index.html", tpl.render(page=p))
-        if p.is_game:
-            src = ROOT / p.meta["game"]
+        if p.is_game and p.lang is site.default:
             dst = out / p.play_url.lstrip("/") / "index.html"
             dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(src, dst)
+            shutil.copyfile(ROOT / p.meta["game"], dst)
+
+    # One 404 for the whole site: CloudFront serves the same file whatever the
+    # address was, so the page says it in every language.
+    env = make_env(site, site.default)
+    write(out, "404.html", env.get_template("404.html").render(page=None))
 
 
 # ---------------------------------------------------------------- extras
 def sitemap(site: Site, out: Path) -> None:
     base = site.config["url"].rstrip("/")
-    urls = ["/"] + [p.url for p in site.public] + [p.play_url for p in site.public if p.is_game]
+    urls = [l.home for l in site.langs]
+    urls += [p.url for p in site.public]
+    urls += [p.play_url for p in site.public if p.is_game and p.lang is site.default]
     body = "\n".join(f"  <url><loc>{base}{u}</loc></url>" for u in urls)
     write(out, "sitemap.xml",
           '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -242,49 +407,53 @@ def ads_txt(site: Site, out: Path) -> None:
 
 
 def llms_txt(site: Site, out: Path) -> None:
-    """Plain-text summary for AI crawlers: https://llmstxt.org"""
+    """Plain-text summary for AI crawlers: https://llmstxt.org (one per language)"""
     base = site.config["url"].rstrip("/")
-    lines = [f"# {site.config['title']}", "", f"> {site.config['description'].strip()}", ""]
-    lines += ["## Games", ""]
-    for g in site.games:
-        if g.draft:
-            continue
-        stats = []
-        if g.meta.get("iterations"):
-            stats.append(f"{g.meta['iterations']} iterations")
-        if g.meta.get("prompts"):
-            stats.append(f"{g.meta['prompts']} prompts")
-        stat = f" ({', '.join(stats)})" if stats else ""
-        lines.append(f"- [{g.title}]({base}{g.url}): {g.tagline}{stat} Play: {base}{g.play_url}")
-    lines += ["", "## Pages", ""]
-    for p in site.others:
-        if not p.draft:
-            lines.append(f"- [{p.title}]({base}{p.url})")
-    write(out, "llms.txt", "\n".join(lines) + "\n")
+    for lang in site.langs:
+        s = lang.strings
+        lines = [f"# {site.config['title']}", "", f"> {s['description'].strip()}", ""]
+        lines += [f"## {s['games_heading']}", ""]
+        for g in site.games(lang):
+            if g.draft:
+                continue
+            stats = []
+            if g.meta.get("iterations"):
+                stats.append(f"{g.meta['iterations']} {s['iterations']}")
+            if g.meta.get("prompts"):
+                stats.append(f"{g.meta['prompts']} {s['prompts']}")
+            stat = f" ({', '.join(stats)})" if stats else ""
+            lines.append(f"- [{g.title}]({base}{g.url}): {g.tagline}{stat} {s['play']}: {base}{g.play_url}")
+        lines += ["", "## Pages", ""]
+        for p in site.others(lang):
+            if not p.draft:
+                lines.append(f"- [{p.title}]({base}{p.url})")
+        write(out, f"{lang.home}llms.txt", "\n".join(lines) + "\n")
 
 
 def feed(site: Site, out: Path) -> None:
     base = site.config["url"].rstrip("/")
-    items = []
-    for g in site.games:
-        if g.draft:
-            continue
-        pub = dt.datetime.combine(g.date, dt.time(12, 0), tzinfo=dt.timezone.utc)
-        items.append(
-            "  <item>\n"
-            f"    <title>{html.escape(g.title)}</title>\n"
-            f"    <link>{base}{g.url}</link>\n"
-            f"    <guid>{base}{g.url}</guid>\n"
-            f"    <pubDate>{pub.strftime('%a, %d %b %Y %H:%M:%S +0000')}</pubDate>\n"
-            f"    <description>{html.escape(g.tagline)}</description>\n"
-            "  </item>"
-        )
-    write(out, "feed.xml",
-          '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel>\n'
-          f"  <title>{html.escape(site.config['title'])}</title>\n"
-          f"  <link>{base}/</link>\n"
-          f"  <description>{html.escape(site.config['tagline'])}</description>\n"
-          + "\n".join(items) + "\n</channel></rss>\n")
+    for lang in site.langs:
+        items = []
+        for g in site.games(lang):
+            if g.draft:
+                continue
+            pub = dt.datetime.combine(g.date, dt.time(12, 0), tzinfo=dt.timezone.utc)
+            items.append(
+                "  <item>\n"
+                f"    <title>{html.escape(g.title)}</title>\n"
+                f"    <link>{base}{g.url}</link>\n"
+                f"    <guid>{base}{g.url}</guid>\n"
+                f"    <pubDate>{pub.strftime('%a, %d %b %Y %H:%M:%S +0000')}</pubDate>\n"
+                f"    <description>{html.escape(g.tagline)}</description>\n"
+                "  </item>"
+            )
+        write(out, f"{lang.home}feed.xml",
+              '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel>\n'
+              f"  <title>{html.escape(site.config['title'])}</title>\n"
+              f"  <link>{base}{lang.home}</link>\n"
+              f"  <language>{lang.key}</language>\n"
+              f"  <description>{html.escape(lang.strings['tagline'])}</description>\n"
+              + "\n".join(items) + "\n</channel></rss>\n")
 
 
 def og_images(site: Site, out: Path) -> None:
@@ -300,17 +469,21 @@ def og_images(site: Site, out: Path) -> None:
         return ImageFont.load_default()
 
     colors = site.config.get("og_colors", {})
-    targets = [(p.slug, p.title, p.tagline) for p in site.public]
-    targets.append(("default", site.config["title"], site.config["tagline"]))
-    for slug, title, tagline in targets:
+    targets = [(p.og_path, p.slug, p.title, p.tagline) for p in site.public]
+    for lang in site.langs:
+        folder = "og" if lang.is_default else f"og/{lang.key}"
+        targets.append((f"/{folder}/default.png", "default",
+                        site.config["title"], lang.strings["tagline"]))
+    for path, slug, title, tagline in targets:
         img = Image.new("RGB", (1200, 630), colors.get(slug, colors.get("default", "#1f2937")))
         d = ImageDraw.Draw(img)
         d.text((80, 200), title, font=font(84), fill="white")
         wrapped = wrap(tagline, 46)
         d.text((80, 320), wrapped, font=font(38, bold=False), fill="#e5e7eb", spacing=12)
         d.text((80, 540), site.config["title"], font=font(30), fill="#d1d5db")
-        (out / "og").mkdir(parents=True, exist_ok=True)
-        img.save(out / "og" / f"{slug}.png", optimize=True)
+        target = out / path.lstrip("/")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        img.save(target, optimize=True)
 
 
 def wrap(text: str, width: int) -> str:
@@ -354,8 +527,9 @@ def main() -> None:
     og_images(site, out)
     copy_static(out)
 
-    n_games = sum(1 for p in site.pages if p.is_game)
-    print(f"built {len(site.pages)} pages ({n_games} games) -> {out}")
+    n_games = sum(1 for p in site.pages if p.is_game and p.lang is site.default)
+    langs = ", ".join(l.key for l in site.langs)
+    print(f"built {len(site.pages)} pages ({n_games} games, {langs}) -> {out}")
 
 
 if __name__ == "__main__":

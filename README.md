@@ -15,7 +15,20 @@ python -m http.server 8000 --directory dist
 ## Adding a game
 
 See [CLAUDE.md](CLAUDE.md): drop the game in `games/<slug>/`, write
-`content/<slug>.md`, push to `main`.
+`content/en/<slug>.md` and `content/fr/<slug>.md`, push to `main`.
+
+## Languages
+
+English lives at the root, French under `/fr/`, and the games themselves are
+shared (`/play/<slug>/`, one copy, no words of ours in them). `languages.yaml`
+lists the languages and holds every word outside the pages; the pages are in
+`content/<language>/`. A page with no French version is not an error — the
+build prints a note and the language menu falls back to the French home page.
+
+Which version a visitor gets is decided in their browser: a few lines in the
+page head send a first-timer to the version matching their browser's language,
+and after that the last flag they clicked is remembered in local storage. No
+cookie, no redirect on the server, nothing to change in AWS.
 
 ## One-time AWS setup
 

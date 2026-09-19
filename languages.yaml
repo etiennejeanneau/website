@@ -1,0 +1,80 @@
+# Every word on the site that is not part of a page. One block per language.
+#
+# The key ("en", "fr") is the folder under content/ and the URL prefix: the
+# default language sits at the root (/games/pigeon-in-paris/), the others under
+# their key (/fr/games/pigeon-in-paris/). Adding a language means adding a
+# block here and a folder content/<key>/ with the pages in it.
+
+default: en
+
+en:
+  name: English          # shown in the language menu
+  short: EN              # shown on narrow screens
+  tagline: Silly little games, vibe coded in the evening.
+  description: >-
+    Free browser games for your phone, made by describing them to an AI and
+    playing the result. Every game comes with the story of its prompts.
+  hero: >-
+    Free games for your phone. Each one was built by describing it to an AI,
+    playing the result, and complaining until it was fun. No accounts, no
+    downloads, nothing stored but your best score.
+  hero_link: How it works →
+  nav_games: Games
+  nav_about: About
+  language_menu: Language
+  games_heading: Games
+  play: Play
+  play_title: Play {title}
+  iterations: iterations
+  prompts: prompts
+  story_link: Read how it was made →
+  story_headline: How {title} was made
+  play_hint: >-
+    Best on a phone, portrait. Opens full screen; use your browser's back
+    button to return.
+  feedback_heading: Did it make you smile, or swear?
+  more_heading: More games
+  made_by: Made by
+  with_claude: with a lot of help from Claude.
+  rss: RSS
+  privacy: Privacy
+  notfound_title: Clean-up on aisle 404
+  notfound_body: "That page isn't here. The games are, though:"
+  notfound_link: back to the list
+
+fr:
+  name: Français
+  short: FR
+  tagline: De petits jeux idiots, vibe codés le soir.
+  description: >-
+    Des jeux gratuits pour votre téléphone, faits en les décrivant à une IA
+    puis en jouant au résultat. Chaque jeu est publié avec l'histoire de ses
+    prompts.
+  hero: >-
+    Des jeux gratuits pour votre téléphone. Chacun a été fabriqué en le
+    décrivant à une IA, en jouant au résultat, et en râlant jusqu'à ce que ce
+    soit amusant. Pas de compte, pas de téléchargement, rien de stocké à part
+    votre meilleur score.
+  hero_link: Comment ça marche →
+  nav_games: Jeux
+  nav_about: À propos
+  language_menu: Langue
+  games_heading: Les jeux
+  play: Jouer
+  play_title: Jouer à {title}
+  iterations: itérations
+  prompts: prompts
+  story_link: Lire comment il a été fait →
+  story_headline: Comment {title} a été fait
+  play_hint: >-
+    Mieux sur un téléphone, en mode portrait. Le jeu s'ouvre en plein écran ;
+    le bouton retour du navigateur ramène ici.
+  feedback_heading: Ça vous a fait sourire, ou jurer ?
+  more_heading: Les autres jeux
+  made_by: Fait par
+  with_claude: avec beaucoup d'aide de Claude.
+  rss: RSS
+  privacy: Confidentialité
+  notfound_title: Nettoyage rayon 404
+  notfound_body: "Cette page n'est pas là. Les jeux, si :"
+  notfound_link: retour à la liste

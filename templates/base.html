@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="{{ site.language }}">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{% set page_title = page.title ~ ' · ' ~ site.title if page else site.title ~ ' · ' ~ site.tagline %}
-{% set page_desc = page.tagline if page and page.tagline else site.description | trim %}
-{% set page_url = site.url ~ (page.url if page else '/') %}
-{% set og_image = site.url ~ '/og/' ~ (page.slug if page else 'default') ~ '.png' %}
+{% set page_title = page.title ~ ' · ' ~ site.title if page else site.title ~ ' · ' ~ t.tagline %}
+{% set page_desc = page.tagline if page and page.tagline else t.description | trim %}
+{% set page_url = site.url ~ (page.url if page else home) %}
+{% set og_image = site.url ~ (page.og_path if page else og_default) %}
 <title>{{ page_title }}</title>
 <meta name="description" content="{{ page_desc }}">
 <link rel="canonical" href="{{ page_url }}">
@@ -16,33 +16,80 @@
 <meta property="og:description" content="{{ page_desc }}">
 <meta property="og:url" content="{{ page_url }}">
 <meta property="og:image" content="{{ og_image }}">
+<meta property="og:locale" content="{{ lang }}">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="/feed.xml">
+{% for a in alternates(page) if a.translated %}
+<link rel="alternate" hreflang="{{ a.key }}" href="{{ site.url }}{{ a.url }}">
+{% endfor %}
+{% for a in alternates(page) if a.is_default %}
+<link rel="alternate" hreflang="x-default" href="{{ site.url }}{{ a.url }}">
+{% endfor %}
+<link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ home }}feed.xml">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/style.css">
 {% if site.google_site_verification %}
 <meta name="google-site-verification" content="{{ site.google_site_verification }}">
 {% endif %}
 {% block head %}{% endblock %}
+<script>
+// Language. A first visit follows the browser's own preference; after that the
+// last flag clicked wins. Nothing leaves the browser, no cookie, no server:
+// the choice is kept in this browser's local storage, and the addresses come
+// from the <link rel="alternate"> tags above, so a page that has no version in
+// the wanted language simply stays where it is instead of 404-ing.
+(function () {
+  var KEY = "ohlala-lang";
+  var here = document.documentElement.lang;
+  var tags = document.querySelectorAll('link[rel="alternate"][hreflang]');
+  var versions = {};
+  for (var i = 0; i < tags.length; i++) {
+    var code = tags[i].getAttribute("hreflang");
+    // The path only, so this works on the real site and on a local preview alike.
+    if (code !== "x-default") versions[code] = new URL(tags[i].href).pathname;
+  }
+  var wanted = null;
+  try {
+    var clicked = new URLSearchParams(location.search).get("lang");
+    if (clicked) {
+      localStorage.setItem(KEY, clicked);
+      history.replaceState(null, "", location.pathname + location.hash);
+    }
+    wanted = clicked || localStorage.getItem(KEY);
+  } catch (e) { /* private browsing: fall back to the browser preference */ }
+  if (!wanted) {
+    var prefs = navigator.languages || [navigator.language || ""];
+    for (var j = 0; j < prefs.length && !wanted; j++) {
+      var base = String(prefs[j]).slice(0, 2).toLowerCase();
+      if (versions[base]) wanted = base;
+    }
+  }
+  if (wanted && wanted !== here && versions[wanted]) location.replace(versions[wanted] + location.hash);
+})();
+</script>
 {% if site.adsense_client %}
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ site.adsense_client }}" crossorigin="anonymous"></script>
 {% endif %}
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="/">{{ site.title }}</a>
+  <a class="brand" href="{{ home }}">{{ site.title }}</a>
   <nav>
-    <a href="/#games">Games</a>
-    <a href="/about/">About</a>
+    <a href="{{ home }}#games">{{ t.nav_games }}</a>
+    <a href="{{ prefix }}/about/">{{ t.nav_about }}</a>
+    <span class="langs" role="group" aria-label="{{ t.language_menu }}">
+    {% for a in alternates(page) %}
+      <a class="lang{{ ' is-current' if a.current }}" href="{{ a.url }}?lang={{ a.key }}" hreflang="{{ a.key }}" lang="{{ a.key }}" title="{{ a.name }}"{% if a.current %} aria-current="true"{% endif %}>{{ a.short }}</a>
+    {% endfor %}
+    </span>
   </nav>
 </header>
 <main>
 {% block content %}{% endblock %}
 </main>
 <footer>
-  <p>{{ site.tagline }} Made by <a href="{{ site.author.url }}">{{ site.author.name }}</a> with a lot of help from Claude.
-  <a href="/feed.xml">RSS</a>
-  <a href="/privacy/">Privacy</a></p>
+  <p>{{ t.tagline }} {{ t.made_by }} <a href="{{ prefix }}/about/">{{ site.author.name }}</a> {{ t.with_claude }}
+  <a href="{{ home }}feed.xml">{{ t.rss }}</a>
+  <a href="{{ prefix }}/privacy/">{{ t.privacy }}</a></p>
 </footer>
 </body>
 </html>
