@@ -15,7 +15,35 @@ python -m http.server 8000 --directory dist
 ## Adding a game
 
 See [CLAUDE.md](CLAUDE.md): drop the game in `games/<slug>/`, write
-`content/en/<slug>.md` and `content/fr/<slug>.md`, push to `main`.
+`content/en/<slug>.md` and `content/fr/<slug>.md`, take its picture, push to
+`main`.
+
+## Screenshots of the games
+
+The card for each game on the home page is a real picture of that game, and so
+is the phone on its story page and the image that shows up when the page is
+shared. The pictures live in `shots/<slug>.png` and are committed like the
+games themselves.
+
+Taking one means running the game in a browser, which the site's build must not
+have to do — it has to stay `python build.py`, with nothing else installed. So
+it happens separately, once per game:
+
+```sh
+pip install playwright        # once
+playwright install chromium   # once
+python scripts/shots.py                  # any game with no picture yet
+python scripts/shots.py pigeon-in-paris  # just that one, again
+```
+
+Most games open on a title screen. The `RECIPES` list at the top of
+`scripts/shots.py` says, in plain words, what to do before the picture is
+taken — `"tap, wait 2s"` starts the game and waits two seconds, so the picture
+shows it being played. A game with no line there gets its title screen.
+
+A game with no picture is not an error: its card falls back to the flat colour
+from `og_colors` in `site.yaml`, and `python build.py` prints a note saying
+which game it was.
 
 ## Languages
 

@@ -25,6 +25,7 @@ en:
   games_heading: Games
   play: Play
   play_title: Play {title}
+  shot_alt: "{title} running on a phone"
   iterations: iterations
   prompts: prompts
   story_link: Read how it was made →
@@ -66,6 +67,7 @@ fr:
   games_heading: Les jeux
   play: Jouer
   play_title: Jouer à {title}
+  shot_alt: "{title} sur un téléphone"
   iterations: itérations
   prompts: prompts
   story_link: Lire comment il a été fait →

@@ -19,7 +19,15 @@ Pipeline
                  /404.html              one page, all languages on it
 4. extras()    sitemap.xml, robots.txt, ads.txt, llms.txt, feed.xml,
                og/<slug>.png (per language: og/fr/<slug>.png)
-5. copy()      static/ -> dist/static/
+5. copy()      static/ -> dist/static/, shots/ -> dist/shots/
+
+Screenshots
+-----------
+shots/<slug>.png is a picture of the game, taken in a real browser by
+scripts/shots.py and committed like the game itself. The build never opens a
+browser: it copies the file and points the card, the story page and the share
+image at it. No file for a slug is not an error — that game falls back to the
+plain coloured card, and the build says so on the console.
 
 Languages
 ---------
@@ -75,6 +83,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 ROOT = Path(__file__).resolve().parent
 CONTENT = ROOT / "content"
 GAMES = ROOT / "games"
+SHOTS = ROOT / "shots"
 TEMPLATES = ROOT / "templates"
 STATIC = ROOT / "static"
 
@@ -139,6 +148,17 @@ class Page:
     def play_url(self) -> str:
         """The game itself. One copy for every language: it has no words of ours."""
         return f"/play/{self.slug}/"
+
+    @property
+    def shot_file(self) -> Path | None:
+        """The screenshot of the game on disk, if one was taken."""
+        f = SHOTS / f"{self.slug}.png"
+        return f if self.is_game and f.is_file() else None
+
+    @property
+    def shot_url(self) -> str | None:
+        """Where that screenshot sits on the site. One copy for every language."""
+        return f"/shots/{self.slug}.png" if self.shot_file else None
 
     @property
     def og_path(self) -> str:
@@ -297,6 +317,13 @@ def validate(site: Site) -> None:
                    if p.lang is site.default and not site.translation(p.slug, lang)]
         if missing:
             print(f"note: no {lang.key} version of {', '.join(sorted(missing))}")
+
+    # A game without a picture is not an error either: its card stays the
+    # plain coloured one. Say it out loud so it is not forgotten.
+    bare = sorted(p.slug for p in site.pages
+                  if p.is_game and p.lang is site.default and not p.shot_file)
+    if bare:
+        print(f"note: no screenshot for {', '.join(bare)} (python scripts/shots.py)")
 
     client = str(site.config.get("adsense_client") or "").strip()
     if client and not re.fullmatch(r"ca-pub-\d{16}", client):
@@ -480,7 +507,11 @@ def feed(site: Site, out: Path) -> None:
 
 
 def og_images(site: Site, out: Path) -> None:
-    """1200x630 share images: coloured background, title, tagline, site name."""
+    """1200x630 share images: the game's own screenshot beside its name.
+
+    A page with no screenshot (the home page, About, a game whose picture has
+    not been taken yet) gets the plain coloured card the site started with.
+    """
     from PIL import Image, ImageDraw, ImageFont
 
     def font(size: int, bold: bool = True):
@@ -492,39 +523,92 @@ def og_images(site: Site, out: Path) -> None:
         return ImageFont.load_default()
 
     colors = site.config.get("og_colors", {})
-    targets = [(p.og_path, p.slug, p.title, p.tagline) for p in site.public]
+    targets = [(p.og_path, p.slug, p.title, p.tagline, p.shot_file) for p in site.public]
     for lang in site.langs:
         folder = "og" if lang.is_default else f"og/{lang.key}"
         targets.append((f"/{folder}/default.png", "default",
-                        site.config["title"], lang.strings["tagline"]))
-    for path, slug, title, tagline in targets:
+                        site.config["title"], lang.strings["tagline"], None))
+
+    small, footer = font(38, bold=False), font(30)
+    for path, slug, title, tagline, shot in targets:
         img = Image.new("RGB", (1200, 630), colors.get(slug, colors.get("default", "#1f2937")))
+        column = 1040                       # room the words have, left to right
+        if shot:
+            picture = phone_picture(shot, height=470)
+            img.paste(picture, (1200 - 80 - picture.width, 80), picture)
+            column = 1200 - 80 - picture.width - 60 - 80
+
         d = ImageDraw.Draw(img)
-        d.text((80, 200), title, font=font(84), fill="white")
-        wrapped = wrap(tagline, 46)
-        d.text((80, 320), wrapped, font=font(38, bold=False), fill="#e5e7eb", spacing=12)
-        d.text((80, 540), site.config["title"], font=font(30), fill="#d1d5db")
+        # The title takes the biggest size that still fits next to the picture:
+        # a long name on one unbreakable word must not run into the phone.
+        title_lines, big = fit(title, column, font, max_lines=2)
+        step = round(big.size * 1.2) if hasattr(big, "size") else 100
+        tag_lines = wrap(tagline, small, column, max_lines=3)
+        block = len(title_lines) * step + 30 + len(tag_lines) * 52
+        y = 130 + max(0, (370 - block) // 2)
+        for line in title_lines:
+            d.text((80, y), line, font=big, fill="white")
+            y += step
+        y += 30
+        for line in tag_lines:
+            d.text((80, y), line, font=small, fill="#e5e7eb")
+            y += 52
+        d.text((80, 540), site.config["title"], font=footer, fill="#d1d5db")
+
         target = out / path.lstrip("/")
         target.parent.mkdir(parents=True, exist_ok=True)
         img.save(target, optimize=True)
 
 
-def wrap(text: str, width: int) -> str:
-    words, lines, cur = text.split(), [], ""
-    for w in words:
-        if len(cur) + len(w) + 1 > width and cur:
-            lines.append(cur)
-            cur = w
+def phone_picture(shot: Path, height: int):
+    """The screenshot as a little phone: rounded corners and a thin light edge."""
+    from PIL import Image, ImageDraw
+
+    im = Image.open(shot).convert("RGBA")
+    width = round(im.width * height / im.height)
+    im = im.resize((width, height), Image.LANCZOS)
+    box, radius = (0, 0, width - 1, height - 1), round(width * 0.10)
+    mask = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(box, radius, fill=255)
+    im.putalpha(mask)
+    ImageDraw.Draw(im).rounded_rectangle(box, radius, outline=(255, 255, 255, 110), width=3)
+    return im
+
+
+def fit(text: str, width: int, font_of, max_lines: int = 2):
+    """The title, at the biggest size that still fits the room it has."""
+    for size in (84, 74, 64, 54, 46):
+        f = font_of(size)
+        lines = wrap(text, f, width, max_lines=max_lines)
+        if all(f.getlength(line) <= width for line in lines):
+            return lines, f
+    return lines, f
+
+
+def wrap(text: str, font, width: int, max_lines: int = 3) -> list[str]:
+    """Break a sentence into lines that fit, measured in the font that draws it."""
+    lines, current = [], ""
+    for word in text.split():
+        trial = f"{current} {word}".strip()
+        if current and font.getlength(trial) > width:
+            lines.append(current)
+            current = word
         else:
-            cur = f"{cur} {w}".strip()
-    if cur:
-        lines.append(cur)
-    return "\n".join(lines[:3])
+            current = trial
+    if current:
+        lines.append(current)
+    return lines[:max_lines]
 
 
 def copy_static(out: Path) -> None:
     if STATIC.is_dir():
         shutil.copytree(STATIC, out / "static", dirs_exist_ok=True)
+
+
+def copy_shots(out: Path) -> None:
+    """The game screenshots, one copy for the whole site (they have no words)."""
+    if SHOTS.is_dir():
+        shutil.copytree(SHOTS, out / "shots", dirs_exist_ok=True)
 
 
 # ---------------------------------------------------------------- main
@@ -549,6 +633,7 @@ def main() -> None:
     feed(site, out)
     og_images(site, out)
     copy_static(out)
+    copy_shots(out)
 
     n_games = sum(1 for p in site.pages if p.is_game and p.lang is site.default)
     langs = ", ".join(l.key for l in site.langs)
