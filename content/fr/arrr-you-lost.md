@@ -34,18 +34,20 @@ Onze versions, racontées ici en cinq chapitres.
 3. **La Marine royale.** Des sloops qui patrouillent, vous repèrent, tournent
    autour et tirent, de plus en plus méchants à mesure qu'on s'éloigne. Vos
    canons tirent tout seuls : barrer *et* viser d'un seul pouce, c'est trop.
-   Couler coûte la moitié de votre or. Ma seule critique : le kraken, une tache
-   violette dans un monde de sable et de turquoise. Il est revenu en eau de
-   tourbillon sombre, avec de vrais tentacules.
+   Ma seule critique : le kraken, une tache violette dans un monde de sable et
+   de turquoise ; il est revenu en eau de tourbillon sombre, avec de vrais
+   tentacules.
 4. **L'histoire.** Sept îles, sept personnages — un ermite qui doit de l'argent
    au capitaine, un gardien de phare dont la lumière est décorative, quatre
-   cents perroquets qui répètent des secrets, le second qui s'est mutiné. Le
-   vaisseau amiral garde le dernier morceau. C'est aussi là que je suis resté
+   cents perroquets qui répètent des secrets. Le vaisseau amiral garde le
+   dernier morceau. C'est aussi là que je suis resté
    bloqué, littéralement : accoster figeait le bateau. Trois messages pour le
    cerner, un mot pour le corriger.
 5. **L'ambiance.** Chaque son inventé sur le moment — canon, pièces, mouettes,
-   ressac — et pas un seul fichier audio. Le jour et la nuit, et du brouillard
-   qui cache la Marine jusqu'à ce qu'on l'entende.
+   ressac — et pas un seul fichier audio. La musique aussi : *Drunken Sailor*,
+   libre de droits depuis les années 1830 (l'air, oui ; les enregistrements
+   célèbres, non), jouée note à note par le même petit synthé. Le jour et la
+   nuit, et du brouillard qui cache la Marine jusqu'à ce qu'on l'entende.
 
 ## Ce que j'ai appris
 
