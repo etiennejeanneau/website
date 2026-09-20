@@ -27,27 +27,29 @@ Eleven versions, in five chapters.
 
 1. **Just sailing.** Islands called *Isle of Mild Regret* and *Damp Biscuits
    Cay*, a minimap, a ship's log. One flaw: I could move, but there was no boat
-   on screen — it had been drawn off in the corner. One line fixed it.
+   on screen. It had been drawn off in the corner; one line fixed it.
 2. **A reason to stop.** Docking, buried treasure, messages in bottles, and a
    trader selling sails, cannons and hull plating. I asked whether the gold
-   came in at a fair pace; it did.
+   pace was fair; it was.
 3. **The Navy.** Sloops that patrol, spot you, circle and shoot, nastier the
    further out you go. Your cannons fire on their own: steering *and* aiming
-   with one thumb is too much. Sinking costs half your gold. My one complaint
-   was the kraken, a purple blob in a world of sand and teal. It came back as
-   whirlpool water with proper tentacles.
+   with one thumb is too much. My one complaint was the kraken, a purple blob
+   in a world of sand and teal; it came back as whirlpool water with proper
+   tentacles.
 4. **The story.** Seven islands, seven characters — a hermit who owes the
    captain money, a lighthouse keeper whose light is decorative, four hundred
-   parrots repeating secrets, the first mate who mutinied. The Admiral's
-   flagship guards the last piece. It is also where I got stuck, literally:
-   docking froze the boat. Three messages to pin down, one word to fix.
+   parrots repeating secrets. The Admiral's flagship guards the last piece. It
+   is also where I got stuck, literally: docking froze the boat. Three messages
+   to pin down, one word to fix.
 5. **Atmosphere.** Every sound invented on the spot — cannon, coins, gulls,
-   surf — and not one audio file. Day and night, and fog that hides the Navy
+   surf — and not one audio file. The music too: *Drunken Sailor*, free to use
+   since the 1830s (the tune is; famous recordings are not), played note by
+   note by the same little synth. Day and night, and fog that hides the Navy
    until you hear it.
 
 ## What I learned
 
 Ask for the plan first when the game is big, and test how the core loop
-*feels* — here, steering — before piling anything on top. And when something
-breaks on my phone but not on the other side, be precise: "the button is there
-but does nothing" led straight to the bug. "It's stuck" didn't.
+*feels* — here, steering — before piling on. And when something breaks on my
+phone but not on the other side, be precise: "the button is there but does
+nothing" found the bug. "It's stuck" didn't.
