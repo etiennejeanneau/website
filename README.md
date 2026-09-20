@@ -45,6 +45,25 @@ A game with no picture is not an error: its card falls back to the flat colour
 from `og_colors` in `site.yaml`, and `python build.py` prints a note saying
 which game it was.
 
+## Sharing a score
+
+Every game gets a small **Share** button in its corner. It sends a sentence —
+the player's best score when the game keeps one — and the address of the
+game's story page, so a score shared with a friend lands on a page with the
+picture, the story and the other games rather than on the bare game file.
+
+The button is not in the game. `build.py` adds `templates/share.html` to the
+copy it publishes under `/play/<slug>/`; the file in `games/` is never touched
+and still plays on its own. The same block also fixes the Share score buttons
+the games already have, which used to send the address of the bare game file.
+
+Two places to edit, both in plain words:
+
+- `scores` in `site.yaml` — one line per game saying where that game keeps the
+  best score in the browser. A game with no line shares without a score.
+- `languages.yaml` — the button's words, in every language. Which language a
+  player sees is decided the same way as everywhere else on the site.
+
 ## Languages
 
 English lives at the root, French under `/fr/`, and the games themselves are

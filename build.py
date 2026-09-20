@@ -13,7 +13,7 @@ Pipeline
                  /fr/                   same home in French
                  /games/<slug>/         story page for one game
                  /fr/games/<slug>/      the same story in French
-                 /play/<slug>/          the raw game file, copied untouched
+                 /play/<slug>/          the game file, plus the share button
                                         (one copy: games have no language)
                  /<slug>/, /fr/<slug>/  any other content page (about, ...)
                  /404.html              one page, all languages on it
@@ -28,6 +28,19 @@ scripts/shots.py and committed like the game itself. The build never opens a
 browser: it copies the file and points the card, the story page and the share
 image at it. No file for a slug is not an error — that game falls back to the
 plain coloured card, and the build says so on the console.
+
+Share button
+------------
+A shared score should bring someone back here, so the copy of the game that is
+published under /play/<slug>/ gets templates/share.html added just before its
+</body>: a small Share button in the corner, and a fix for the Share score
+buttons the games already have, which send the address of the bare game file
+instead of the game's page. The file in games/ is never touched — it stays the
+game as it was vibe coded, and still plays on its own with none of this.
+
+site.yaml's `scores` says where each game keeps the player's best score in the
+browser, so the button can say it. A game missing from that list shares without
+a score.
 
 Languages
 ---------
@@ -92,6 +105,10 @@ FRONT_MATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.S)
 # Front matter keys a translation inherits from the default language when it
 # does not set them itself. Only the words are expected in a translated file.
 INHERITED = ("game", "date", "iterations", "prompts", "tags", "draft", "session")
+
+# What templates/share.html says, in every language. A language that has not
+# translated them falls back to the default language's words.
+SHARE_WORDS = ("share_button", "share_score", "share_best", "share_invite", "share_copied")
 
 
 # ---------------------------------------------------------------- model
@@ -325,6 +342,17 @@ def validate(site: Site) -> None:
     if bare:
         print(f"note: no screenshot for {', '.join(bare)} (python scripts/shots.py)")
 
+    # The share button needs its words, and needs to know which game it is on.
+    missing_words = [k for k in SHARE_WORDS if not site.default.strings.get(k)]
+    if missing_words:
+        sys.exit(f"languages.yaml: {site.default.key} needs {', '.join(missing_words)}")
+    slugs = {p.slug for p in site.pages if p.is_game}
+    for slug, where in (site.config.get("scores") or {}).items():
+        if slug not in slugs:
+            sys.exit(f"site.yaml: scores has '{slug}', which is not a game")
+        if not str((where or {}).get("key") or "").strip():
+            sys.exit(f"site.yaml: scores.{slug} needs a 'key'")
+
     client = str(site.config.get("adsense_client") or "").strip()
     if client and not re.fullmatch(r"ca-pub-\d{16}", client):
         sys.exit(f"site.yaml: adsense_client should look like ca-pub-0000000000000000, got '{client}'")
@@ -400,6 +428,35 @@ def write(out: Path, rel: str, content: str) -> None:
     target.write_text(content, encoding="utf-8")
 
 
+BODY_END = re.compile(r"</body\s*>", re.I)
+
+
+def playable(site: Site, page: Page, env: Environment) -> str:
+    """The game file as it is, with the site's share button slipped in at the end.
+
+    Nothing is written back to games/: that file stays the game as it was vibe
+    coded, and still plays on its own, share button or not. A game with no
+    </body> (none so far) simply gets the button appended.
+    """
+    raw = (ROOT / page.meta["game"]).read_text(encoding="utf-8")
+    words = {
+        l.key: {k: l.strings.get(k, site.default.strings[k]) for k in SHARE_WORDS}
+        for l in site.langs
+    }
+    block = env.get_template("share.html").render(
+        page=page,
+        words=words,
+        default_lang=site.default.key,
+        score=(site.config.get("scores") or {}).get(page.slug),
+        share_url=site.config["url"].rstrip("/") + page.url,
+    )
+    ends = list(BODY_END.finditer(raw))
+    if not ends:
+        return raw + "\n" + block
+    cut = ends[-1].start()
+    return raw[:cut] + block + raw[cut:]
+
+
 def render(site: Site, out: Path) -> None:
     for lang in site.langs:
         env = make_env(site, lang)
@@ -410,12 +467,14 @@ def render(site: Site, out: Path) -> None:
             tpl = env.get_template("game.html" if p.is_game else "page.html")
             write(out, f"{p.url}index.html", tpl.render(page=p))
 
-    # One copy of each game, shared by every language.
+    # One copy of each game, shared by every language, with the share button
+    # added on the way out.
+    share_env = make_env(site, site.default)
     for p in site.pages:
         if p.is_game and p.lang is site.default:
             dst = out / p.play_url.lstrip("/") / "index.html"
             dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(ROOT / p.meta["game"], dst)
+            dst.write_text(playable(site, p, share_env), encoding="utf-8")
 
     # One 404 for the whole site: CloudFront serves the same file whatever the
     # address was, so the page says it in every language.

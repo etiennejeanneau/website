@@ -60,6 +60,11 @@ small, and never add a framework or a build step beyond `python build.py`.
 7. Commit with a message like `Add <Game Name>` and push. The workflow builds,
    syncs to S3 and invalidates CloudFront; the page is live in about a minute.
 
+If the game keeps a best score in the browser, add a line for the slug under
+`scores` in `site.yaml` saying where: the share button in the corner of the
+game then says that score. A game missing from that list still gets the
+button; it just shares the game without a number in it.
+
 Use `draft: true` in the English front matter to build a page without listing
 it (`python build.py --drafts` to include it locally); the French version
 inherits the draft flag.
@@ -92,10 +97,12 @@ content/fr/*.md     the same pages in French, same file names
 games/<slug>/       the playable files, copied untouched to /play/<slug>/
 shots/<slug>.png    a picture of each game, taken by scripts/shots.py and
                     committed like the games; the build only copies it
-templates/*.html    Jinja2: base, index, game, page, 404, feedback
+templates/*.html    Jinja2: base, index, game, page, 404, feedback, share
                     feedback.html is the block base.html puts at the bottom of
                     every page: a link to the Tally form, built only when
                     site.yaml has a tally_form_id. See the README to set it up.
+                    share.html is the block build.py puts at the bottom of every
+                    game when it copies it to /play/. See "The share button".
 static/             style.css, favicon.svg
 infra/site.yaml     CloudFormation for the whole AWS side (deploy in us-east-1)
 scripts/shots.py    takes the game pictures (needs Playwright; the build
@@ -109,6 +116,26 @@ URLs: `/` home, `/games/<slug>/` story page, `/play/<slug>/` the game itself,
 `/shots/<slug>.png`, and the same set under `/fr/` (except the games, the
 pictures and the sitemap, which are shared).
 
+## The share button
+
+A score is worth sharing only if it brings someone back here, so every game
+published under `/play/<slug>/` gets `templates/share.html` added just before
+its `</body>` — a small Share button in the corner, which sends the player's
+best score and the address of the game's story page (`/games/<slug>/`, the one
+with the picture and the link to the other games).
+
+The same block also fixes the Share score buttons the games already have.
+Those send the address of the file they are running in, which is the bare game
+on a page with no title, no picture and no way back to the site; the message
+keeps its score, only the link is swapped.
+
+The files in `games/` are never touched by any of this. They stay exactly the
+games that were vibe coded and still play on their own, share button or not —
+that is why the button is added by the build and not written into the game.
+
+`scores` in `site.yaml` says, one line per game, where each game keeps the best
+score in the browser. `languages.yaml` holds the button's words.
+
 ## Checks before pushing
 
 - `python build.py` succeeds.
@@ -118,3 +145,5 @@ pictures and the sitemap, which are shared).
   story page shows it in the phone frame.
 - Front matter counts (`iterations`, `prompts`) match what happened in the
   build conversation; do not guess them.
+- The Share button in the corner of the game is there and does not sit on top
+  of anything the game itself draws in that corner.
