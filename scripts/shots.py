@@ -24,7 +24,11 @@ the picture is taken, one line per game, in plain words:
     "tap, wait 2s"           tap the middle of the screen, then wait
     "tap #play, wait 1s"     tap that button (an id from the game's own HTML)
     "tap 195 610"            tap that exact point
+    "drag 195 520 to 250 360"  press there, slide there, let go
     "wait 3s"                just wait
+
+A game steered by sliding a thumb around needs the drag: a tap holds still,
+and a still player makes a dull picture.
 
 A game with no line here gets its title screen, which is a fine picture too.
 """
@@ -52,6 +56,7 @@ SETTLE = 2000
 # this file for the words it understands. Nothing here = the title screen.
 RECIPES = {
     "aisle-be-back":     "tap, wait 2.2s",
+    "arrr-you-lost":     "tap #sail, wait 0.4s, drag 195 420 to 150 545, wait 2.2s",
     "desktop-tycoon":    "tap #m-ok, wait 1s",
     "every-drop-counts": "tap #play, wait 3s",
     "pigeon-in-paris":   "tap, wait 0.9s, tap, wait 0.7s",
@@ -69,6 +74,10 @@ def steps(recipe: str) -> list[tuple]:
         m = re.fullmatch(r"wait\s+([\d.]+)\s*(m?s)", step)
         if m:
             out.append(("wait", float(m.group(1)) * (1 if m.group(2) == "ms" else 1000)))
+            continue
+        m = re.fullmatch(r"drag\s+(\d+)\s+(\d+)\s+to\s+(\d+)\s+(\d+)", step)
+        if m:
+            out.append(("drag",) + tuple(int(g) for g in m.groups()))
             continue
         m = re.fullmatch(r"tap\s+(\d+)\s+(\d+)", step)
         if m:
@@ -105,6 +114,13 @@ def capture(browser, slug: str) -> Path:
             page.wait_for_timeout(step[1])
         elif step[0] == "point":
             page.touchscreen.tap(step[1], step[2])
+        elif step[0] == "drag":
+            # Slowly, in small moves: a game reading a thumb needs to see the
+            # finger travel, not teleport.
+            page.mouse.move(step[1], step[2])
+            page.mouse.down()
+            page.mouse.move(step[3], step[4], steps=12)
+            page.mouse.up()
         else:
             try:
                 page.click(step[1], timeout=3000)

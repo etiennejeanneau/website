@@ -138,9 +138,7 @@
   // at what is really down there and step above it, rather than sit on it.
   // Anything a game draws inside its canvas cannot be seen from here, but in
   // those games the corner is free anyway.
-  function stepAside() {
-    btn.style.bottom = "";
-    var box = btn.getBoundingClientRect();
+  function above(box) {
     var top = Infinity;
     var all = document.querySelectorAll("body *");
     for (var i = 0; i < all.length; i++) {
@@ -156,14 +154,52 @@
       if (r.bottom < box.top || r.top > box.bottom) continue;
       if (r.top < top) top = r.top;
     }
-    var lift = box.bottom - top + 8;
-    if (top !== Infinity && lift > 0 && lift < window.innerHeight * 0.3) {
+    return top;
+  }
+
+  // One step is not always enough: a game that stacks two buttons in the same
+  // corner moves the first one out of the way only to meet the second. So look
+  // again after each step, a few times at most, and never climb more than a
+  // third of the screen — past that the corner is not a corner any more, and
+  // the button stays where it was.
+  function stepAside() {
+    btn.style.bottom = "";
+    var lift = 0;
+    for (var pass = 0; pass < 4; pass++) {
+      var box = btn.getBoundingClientRect();
+      var top = above(box);
+      if (top === Infinity) break;
+      var step = box.bottom - top + 8;
+      if (step <= 0) break;
+      if (lift + step >= window.innerHeight * 0.3) break;
+      lift += step;
       btn.style.bottom = "calc(" + (10 + lift) + "px + env(safe-area-inset-bottom, 0px))";
     }
   }
   stepAside();
   window.addEventListener("load", stepAside);     // a game that builds its own bar late
   window.addEventListener("resize", stepAside);
+
+  // Most games open on a title screen and only put their own buttons on the
+  // screen once play starts, so looking at load time is looking at an empty
+  // corner. Watch the page for changes and look again — twice a second at the
+  // very most, whatever the game is doing to itself in the meantime.
+  var watch = null, last = 0, soon = 0;
+  function look() {
+    last = Date.now();
+    stepAside();
+    if (watch) watch.takeRecords();   // moving the button is not news: drop it
+  }
+  try {
+    watch = new MutationObserver(function () {
+      clearTimeout(soon);
+      soon = setTimeout(look, Math.max(0, 500 - (Date.now() - last)));
+    });
+    watch.observe(document.body, {
+      childList: true, subtree: true,
+      attributes: true, attributeFilter: ["hidden", "class", "style"]
+    });
+  } catch (e) { /* a browser without it: the button stays where it landed */ }
 
   var back = 0;
   function say(word) {

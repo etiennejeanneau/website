@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="Arrr You Lost? — sail an endless procedural sea, follow a torn treasure map, dig up gold, trade for upgrades and outrun the Navy. A free mobile pirate game.">
+<meta name="theme-color" content="#0f3f62">
+<title>Arrr You Lost?</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=IM+Fell+English:ital@0;1&display=swap">
+<style>
+:root{
+  --sea:#17547d;--sea-deep:#0f3f62;--parch:#efdfb8;--parch-2:#e2cd9b;--ink:#2a1a0b;--ink-soft:#5a4426;
+  --gold:#d9a441;--rope:#8a6a3d;--red:#a5382b;--green:#4f8a3a;
+}
+[hidden]{display:none!important;}
+html,body{height:100%;}
+body{margin:0;background:var(--sea-deep);color:var(--ink);font-family:"IM Fell English",Georgia,serif;overflow:hidden;
+  -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;}
+.hud,#toast,.fab,#sheet,#title{z-index:2;}
+.hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 0;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;}
+.panel{background:var(--parch);border:2px solid var(--rope);border-radius:6px;padding:6px 10px;box-shadow:0 2px 0 var(--parch-2),0 4px 10px rgba(0,0,0,.35);
+  font-size:14px;line-height:1.35;min-width:150px;}
+.panel b{font-family:"Pirata One",Georgia,serif;font-weight:400;font-size:20px;letter-spacing:.5px;display:block;color:var(--ink);}
+.panel .row{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums;}
+.panel .row span:last-child{color:var(--ink-soft);}
+.panel .row.gold span:first-child{color:#8a5a00;font-weight:bold;}
+.hpbar{height:9px;border:2px solid var(--rope);border-radius:5px;background:#c9b48a;margin:4px 0 2px;overflow:hidden;}
+.hpbar i{display:block;height:100%;background:var(--green);width:100%;transition:width .2s,background .2s;}
+.hpbar i.low{background:var(--red);}
+#minimap{width:118px;height:118px;border-radius:50%;border:3px solid var(--rope);background:#0b2b45;box-shadow:0 0 0 3px var(--parch),0 4px 10px rgba(0,0,0,.4);}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 170px);transform:translateX(-50%);background:var(--parch);border:2px solid var(--rope);
+  border-radius:6px;padding:8px 16px;font-family:"Pirata One",Georgia,serif;font-size:22px;color:var(--ink);opacity:0;transition:opacity .4s;pointer-events:none;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+#toast small{display:block;font-family:"IM Fell English",Georgia,serif;font-size:13px;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;}
+#toast.alert{background:var(--red);color:var(--parch);border-color:#5a1a12;} #toast.alert small{color:var(--parch-2);}
+#flash{position:fixed;inset:0;background:var(--red);opacity:0;pointer-events:none;z-index:1;}
+.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);border:3px solid var(--rope);background:var(--parch);color:var(--ink);
+  box-shadow:0 3px 0 var(--parch-2),0 6px 12px rgba(0,0,0,.4);cursor:pointer;font-family:"Pirata One",Georgia,serif;}
+.fab:focus-visible{outline:3px solid #fff;}
+#anchor{right:16px;width:64px;height:64px;border-radius:50%;font-size:30px;line-height:58px;text-align:center;}
+#mute{right:26px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);width:44px;height:44px;border-radius:50%;font-size:20px;line-height:38px;text-align:center;border-width:2px;}
+#title .rec{font-size:14px;color:var(--parch-2);letter-spacing:.04em;}
+#anchor.on{background:var(--gold);}
+#dock{left:16px;right:96px;height:56px;border-radius:8px;font-size:22px;background:var(--gold);padding:0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#dock:disabled{background:var(--red);color:var(--parch);opacity:1;}
+#sheet{position:fixed;left:0;right:0;bottom:0;touch-action:pan-y;-webkit-overflow-scrolling:touch;background:var(--parch);border-top:3px solid var(--rope);border-radius:16px 16px 0 0;
+  padding:16px 18px calc(env(safe-area-inset-bottom,0px) + 18px);box-shadow:0 -6px 24px rgba(0,0,0,.45);max-height:72vh;overflow-y:auto;}
+#sheet h2{font-family:"Pirata One",Georgia,serif;font-weight:400;font-size:30px;margin:0 44px 2px 0;text-wrap:balance;}
+#sheet .x{position:absolute;top:10px;right:12px;width:38px;height:38px;border-radius:50%;border:2px solid var(--rope);background:var(--parch-2);font-size:20px;line-height:34px;text-align:center;cursor:pointer;color:var(--ink);}
+#sheet .kind{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;}
+#sheet p{margin:0 0 12px;font-size:17px;line-height:1.4;max-width:60ch;}
+#sheet p.say{font-style:italic;border-left:3px solid var(--rope);padding-left:10px;}
+.btn{font-family:"Pirata One",Georgia,serif;font-size:22px;background:var(--gold);color:var(--ink);border:3px solid var(--rope);border-radius:8px;padding:8px 18px;cursor:pointer;box-shadow:0 3px 0 #8a6a3d;}
+.btn.quiet{background:var(--parch-2);}
+.btn:disabled{opacity:.45;cursor:default;}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;}
+.shop{display:grid;gap:10px;margin:8px 0 12px;}
+.item{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;background:var(--parch-2);border:2px solid var(--rope);border-radius:8px;padding:8px 12px;}
+.item b{font-family:"Pirata One",Georgia,serif;font-weight:400;font-size:20px;}
+.item small{grid-column:1;color:var(--ink-soft);font-size:13px;}
+.item .btn{grid-row:1/3;font-size:18px;padding:6px 12px;min-width:84px;}
+#title{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(8,32,52,.72);text-align:center;padding:24px;}
+#title h1{font-family:"Pirata One",Georgia,serif;font-weight:400;font-size:clamp(44px,13vw,84px);color:var(--parch);margin:0;text-shadow:0 4px 0 #2a1a0b,0 8px 24px rgba(0,0,0,.6);text-wrap:balance;}
+#title p{color:var(--parch);max-width:34ch;margin:0;font-size:17px;line-height:1.45;}
+#title .btn{font-size:28px;padding:10px 34px;}
+#title .link{color:var(--parch-2);text-decoration:underline;font-size:15px;background:none;border:0;cursor:pointer;font-family:inherit;}
+#title .hint{font-size:14px;opacity:.85;}
+#title.sunk{background:rgba(60,12,8,.8);}
+</style>
+
+<canvas id="game"></canvas>
+<div id="flash"></div>
+<div class="hud">
+  <div class="panel">
+    <b>Ship's Log</b>
+    <div class="hpbar"><i id="hp"></i></div>
+    <div class="row gold"><span id="gold">0</span><span>gold</span></div>
+    <div class="row"><span id="lg">0.0</span><span>leagues out</span></div>
+    <div class="row"><span id="kn">0</span><span>knots</span></div>
+    <div class="row"><span id="isl">0</span><span>islands found</span></div>
+    <div class="row"><span id="frag">0/7</span><span>map pieces</span></div>
+  </div>
+  <canvas id="minimap" width="236" height="236"></canvas>
+</div>
+<div id="toast"><small id="toastKicker">Land ho!</small><span id="toastName"></span></div>
+<button id="dock" class="fab" hidden>⚓ Dock</button>
+<button id="anchor" class="fab" title="Drop anchor" aria-label="Drop anchor">⚓</button>
+<button id="mute" class="fab" title="Sound" aria-label="Toggle sound" hidden>🔊</button>
+<div id="sheet" hidden></div>
+<div id="title">
+  <h1 id="titleH">Arrr You Lost?</h1>
+  <p id="titleP">Yer captain left ye a leaky sloop, one piece of a torn treasure map, and an endless sea. Follow the compass. Find the other six.</p>
+  <button class="btn" id="sail">Set sail</button>
+  <p class="hint" id="titleHint">Drag anywhere to steer. Let go to hold course. ⚓ drops anchor. Slow down near an island to dock. Cannons fire on their own.</p>
+  <p class="rec" id="rec" hidden></p>
+  <button class="link" id="newgame" hidden>Start a new voyage (forget the map)</button>
+</div>
+
+<script>
+'use strict';
+// ---------- constants ----------
+const CH = 1400;               // chunk size in world px
+const SEED = 1337;
+const BASE_SPEED = 230;        // px/s
+const TURN_RATE = 1.9;         // rad/s
+const HULL_R = 11;
+const SAVE_KEY = 'arrryoulost.v3';
+const SAFE_CHUNKS = 1.3;       // no Navy this close to Port
+
+// ---------- rng / hashing ----------
+function hash3(a,b,c){ let h = (a*374761393 + b*668265263 + c*2246822519) | 0; h = (h ^ (h>>>13)) * 1274126177; return (h ^ (h>>>16)) >>> 0; }
+function mulberry(seed){ let t = seed>>>0; return ()=>{ t = (t + 0x6D2B79F5)|0; let r = Math.imul(t ^ (t>>>15), 1|t); r = (r + Math.imul(r ^ (r>>>7), 61|r)) ^ r; return ((r ^ (r>>>14))>>>0)/4294967296; }; }
+const lerp=(a,b,t)=>a+(b-a)*t, clamp=(v,a,b)=>v<a?a:v>b?b:v;
+function angDiff(a,b){ let d=(b-a)%(Math.PI*2); if(d>Math.PI)d-=Math.PI*2; if(d<-Math.PI)d+=Math.PI*2; return d; }
+
+// ---------- sound: everything synthesized, no assets ----------
+const Snd=(()=>{
+  let ac=null, master=null, muted=false; try{ muted=localStorage.getItem('arrryoulost.mute')==='1'; }catch(e){}
+  function init(){ if(ac) return true; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false; ac=new AC(); master=ac.createGain(); master.gain.value=muted?0:0.6; master.connect(ac.destination); ambient(); return true; }
+  function resume(){ if(!init()) return; if(ac.state==='suspended') ac.resume(); }
+  function env(g,t0,a,d,peak){ g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(peak,t0+a); g.gain.exponentialRampToValueAtTime(0.0001,t0+a+d); }
+  function tone(f0,f1,dur,type,peak,delay=0){ if(!ac) return; const t0=ac.currentTime+delay, o=ac.createOscillator(), g=ac.createGain(); o.type=type; o.frequency.setValueAtTime(f0,t0); o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t0+dur); env(g,t0,0.008,dur,peak); o.connect(g); g.connect(master); o.start(t0); o.stop(t0+dur+0.05); }
+  let nbuf=null; function noiseBuf(){ if(nbuf) return nbuf; nbuf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate); const d=nbuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; return nbuf; }
+  function noise(dur,cut,type,peak,delay=0,q=1){ if(!ac) return; const t0=ac.currentTime+delay, src=ac.createBufferSource(); src.buffer=noiseBuf(); const f=ac.createBiquadFilter(); f.type=type; f.frequency.value=cut; f.Q.value=q; const g=ac.createGain(); env(g,t0,0.005,dur,peak); src.connect(f); f.connect(g); g.connect(master); src.start(t0); src.stop(t0+dur+0.05); }
+  function ambient(){ const src=ac.createBufferSource(); src.buffer=noiseBuf(); src.loop=true; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=420; const g=ac.createGain(); g.gain.value=0.05;
+    const lfo=ac.createOscillator(); lfo.frequency.value=0.12; const lg=ac.createGain(); lg.gain.value=0.03; lfo.connect(lg); lg.connect(g.gain); src.connect(f); f.connect(g); g.connect(master); src.start(); lfo.start(); }
+  const fx={
+    cannon(v=1){ noise(0.22,700,'lowpass',0.7*v); tone(110,45,0.28,'sine',0.5*v); },
+    hit(){ noise(0.1,1800,'bandpass',0.45,0,2); tone(300,120,0.12,'square',0.15); },
+    hurt(){ tone(140,55,0.22,'square',0.35); noise(0.18,380,'lowpass',0.5); },
+    coin(){ tone(880,900,0.08,'sine',0.25); tone(1320,1340,0.14,'sine',0.25,0.07); },
+    discover(){ [523,659,784].forEach((f,i)=>tone(f,f,0.16,'triangle',0.22,i*0.11)); },
+    splash(){ noise(0.35,600,'lowpass',0.4); },
+    sink(){ tone(320,70,0.9,'sawtooth',0.22); noise(0.7,500,'lowpass',0.35,0.1); },
+    buy(){ tone(660,660,0.1,'triangle',0.25); tone(990,990,0.16,'triangle',0.25,0.1); },
+    gull(){ tone(1250,900,0.16,'sawtooth',0.06); tone(1150,850,0.14,'sawtooth',0.05,0.2); },
+    alarm(){ tone(440,440,0.12,'square',0.2); tone(440,440,0.12,'square',0.2,0.18); },
+    fanfare(){ [523,659,784,1046].forEach((f,i)=>tone(f,f,0.25,'triangle',0.25,i*0.14)); },
+  };
+  function play(n,v){ if(!ac||muted) return; try{ fx[n](v); }catch(e){} }
+  function toggle(){ muted=!muted; try{ localStorage.setItem('arrryoulost.mute',muted?'1':'0'); }catch(e){} if(master) master.gain.value=muted?0:0.6; return muted; }
+  return { play, resume, toggle, get muted(){ return muted; } };
+})();
+
+// ---------- flavour text ----------
+const PRE=["Isle of","Cape","Skull","Rum","Barnacle","Widow's","Parrot","Coral","Salt","Gull","Cutlass","Kraken","Mermaid","Dead Man's","Fog","Turtle","Bilge","Pegleg","Grog","Hangman's"];
+const NOUN=["Regret","Bones","Reef","Cove","Rock","Point","Harbour","Key","Atoll","Sorrow","Plenty","Nowhere","Hiccups","Bad Ideas","Lost Socks","Mild Peril","Second Thoughts","Damp Biscuits","Quiet","Squall"];
+const SUF=["Island","Isle","Cay","Rock","Shoal"];
+function islandName(r){ const f=r(); if(f<0.45) return PRE[(r()*PRE.length)|0]+" "+NOUN[(r()*NOUN.length)|0]; if(f<0.8) return NOUN[(r()*NOUN.length)|0]+" "+SUF[(r()*SUF.length)|0]; return "Isle of "+NOUN[(r()*NOUN.length)|0]; }
+const BOTTLES=[
+  "\"Day 40. Still no sign of land. Also I forgot to untie the boat from the dock.\"",
+  "\"To whoever finds this: the treasure is buried under the big X. Not that X. The other one.\"",
+  "\"Beware the Navy. They have more cannons than you and fewer jokes.\"",
+  "\"I have named every seagull. It was a mistake. They know.\"",
+  "\"The Kraken is real. It is also, I think, lonely.\"",
+  "\"If ye can read this, ye're literate. Rarer than gold out here.\"",
+  "\"Recipe for hardtack: flour, water, regret. Bake until it can stop a musket ball.\"",
+  "\"Turned left at the fog bank. Should've turned right. Or stayed home.\"",
+  "\"Sold my compass for rum. Best decision I ever made, wherever I am.\"",
+  "\"The trader at the port waters down the grog. Tell him I said so. Don't tell him where I am.\"",
+  "\"A ghost ship passed us last night. Very polite. Waved.\"",
+  "\"Note to self: parrots cannot keep secrets.\"",
+  "\"Dark water means tentacles. Tentacles mean go around. Signed, a man with one leg.\"",
+];
+const DIGS=["Ye dig. Ye find a chest!","A rusty chest, half-buried. Cracked open with a boot.","Under the third palm, exactly where any fool would look. Still, gold is gold.","A crab defends the chest bravely. The crab loses."];
+const TRADER_LINES=["\"Gold for goods, captain. No refunds, no receipts, no questions.\"","\"Everything's for sale. Except the parrot. The parrot owns me.\"","\"Sails, planks, and a spyglass I definitely didn't steal.\""];
+const SUNK=["Ye sank. The fish are unimpressed.","Down to Davy Jones. He kept half yer gold as a tip.","Glub. Glub. Glub.","The Navy sends its regards, and a bill."];
+// ---------- the story: seven pieces of a torn map ----------
+const STORY=[
+  {name:"Gull Rock",who:"Old Fennick, a hermit who owes yer captain money",
+   say:["\"Ohlala's ship? Then ye've come for the twelve gold I owe him.\" He squints. \"Ye're not him. Good. Here's a map piece instead — he left it with me for 'safekeeping', which is his word for forgetting.\"","\"It points east-ish. Or west-ish. His handwriting was terrible.\""],
+   reward:30},
+  {name:"The Lighthouse That Lies",who:"Marguerite, the keeper, who lights the lamp when she feels like it",
+   say:["\"Ships keep wrecking here. I keep telling them: the light is decorative.\" She hands ye a scrap of parchment. \"Yer captain traded this for a night out of the rain. He snored like a cannon.\"","\"The next piece is with the birds. Ye'll hear them before ye see them. Ye'll wish ye hadn't.\""],
+   reward:50},
+  {name:"Parrot Parliament",who:"Four hundred parrots, all repeating yer captain's secrets",
+   say:["\"PIECES OF EIGHT! PIECES OF EIGHT!\" — \"HE BURIED IT UNDER THE—\" — \"SHUT UP, GERALD!\"","A map piece is stuck to the biggest one with what ye hope is jam. Ye take it. Every parrot watches ye leave. Every parrot says yer name."],
+   reward:70},
+  {name:"Navy Graveyard",who:"Ensign Pimbleton, a deserter living in a wreck",
+   say:["\"Don't tell the Admiral I'm here. Don't tell him I'm anywhere. Don't tell him about the parrot either.\" He trades ye a map piece for a promise to say nothing.","\"The Admiral wants that treasure too. HMS Inevitable — three decks of cannon and no sense of humour. Ye'll meet her at the end. Bring bandages.\""],
+   reward:100},
+  {name:"The Singing Reef",who:"A siren who is, frankly, bored",
+   say:["\"I sing, they crash, I feel bad, I sing again. It's a cycle.\" She flicks a map piece onto yer deck with her tail. \"Yer captain didn't crash. Worst night of my career.\"","\"Follow it into the fog. Don't follow the singing. That's me practising.\""],
+   reward:140},
+  {name:"Fog's End",who:"One-Eyed Margaux, yer captain's first mate, who left on bad terms",
+   say:["\"He gave YOU the sloop? I mutinied for that sloop.\" She looks at yer map pieces for a long time. \"Fine. Take mine. Together they show the X. I'm too old to dig and too proud to ask.\"","\"Sink the Inevitable, dig the chest, and if it's empty, don't come back here laughing.\""],
+   reward:200},
+  {name:"The Captain's Last Laugh",who:"A chest, a note, and a very old parrot",
+   say:["The chest is enormous. Inside: gold, gold, more gold, and a note in that terrible handwriting.","\"If ye're reading this, ye sank the Admiral, out-sailed the Navy, and out-witted four hundred parrots. The real treasure was the friends ye — no, I'm joking, it's the gold. Spend it badly. — Capt. Ohlala\"","The old parrot clears its throat. \"SHUT UP, GERALD,\" it says, with feeling."],
+   reward:2000},
+];
+const STORY_DIST=[2.2,3.6,5.0,6.6,8.2,9.8,11.5];
+const storyChunks=new Map(); // "cx,cy" -> index
+(function placeStory(){ const r=mulberry(hash3(SEED,7,77)); let a=r()*6.28;
+  for(let i=0;i<STORY.length;i++){ if(i) a+=(r()<0.5?-1:1)*(0.6+r()*0.7); const d=STORY_DIST[i]; let cx=Math.round(Math.cos(a)*d), cy=Math.round(Math.sin(a)*d);
+    while(storyChunks.has(cx+","+cy)||(cx===0&&cy===0)) cx++; storyChunks.set(cx+","+cy,i); STORY[i].cx=cx; STORY[i].cy=cy; } })();
+const storyPos=i=>({x:STORY[i].cx*CH+CH/2,y:STORY[i].cy*CH+CH/2});
+function nextStory(){ for(let i=0;i<STORY.length;i++) if(!state.frags.has(i)) return i; return -1; }
+
+const UPGRADES={
+  sails:{name:"Sails",desc:"Faster ship",prices:[60,150,320,600],max:4},
+  cannons:{name:"Cannons",desc:"More damage, longer range",prices:[70,180,380,700],max:4},
+  hull:{name:"Hull plating",desc:"+40 hull per level",prices:[50,140,300,550],max:4},
+  spy:{name:"Spyglass",desc:"Bigger minimap range",prices:[40,120,300],max:3},
+};
+
+// ---------- world ----------
+const chunks = new Map();
+function makeIsland(id,x,y,R,r,name,home,dist){
+  const H=[[0.10+r()*0.09,2,r()*6.28],[0.06+r()*0.08,3,r()*6.28],[0.03+r()*0.05,5,r()*6.28]];
+  const radial = th => { let m=1; for(const [a,k,p] of H) m+=a*Math.sin(k*th+p); return R*m; };
+  const path = s => { const p=new Path2D(); for(let i=0;i<56;i++){ const th=i/56*6.2832, rr=radial(th)*s; i?p.lineTo(Math.cos(th)*rr,Math.sin(th)*rr):p.moveTo(Math.cos(th)*rr,Math.sin(th)*rr);} p.closePath(); return p; };
+  const trees=[]; const n=3+(R/40|0); for(let i=0;i<n;i++){ const th=r()*6.28, d=0.15+r()*0.45; trees.push([Math.cos(th)*radial(th)*d,Math.sin(th)*radial(th)*d,0.8+r()*0.6]); }
+  const rocks=[]; if(r()<0.5){ const th=r()*6.28; rocks.push([Math.cos(th)*radial(th)*1.25,Math.sin(th)*radial(th)*1.25,6+r()*8]); }
+  let kind, loot=0, text="";
+  if(home){ kind='trader'; text=TRADER_LINES[0]; }
+  else { const f=r(); kind = f<0.5?'treasure' : f<0.72?'bottle' : f<0.88?'trader' : 'empty';
+    loot = Math.round((20 + r()*30 + dist*12) * (kind==='treasure'?1:0.3));
+    text = kind==='bottle'?BOTTLES[(r()*BOTTLES.length)|0] : kind==='treasure'?DIGS[(r()*DIGS.length)|0] : kind==='trader'?TRADER_LINES[(r()*TRADER_LINES.length)|0] : "Sand, palms, and a strong feeling that someone got here first."; }
+  const gulls=R>110?2:1;
+  return {id,x,y,R,radial,shallow:path(1.42),foam:path(1.13),sand:path(1),grass:path(0.7),trees,rocks,gulls,name,home:!!home,kind,loot,text};
+}
+function chunk(cx,cy){
+  const key=cx+","+cy; let c=chunks.get(key); if(c) return c;
+  const r=mulberry(hash3(SEED,cx,cy)); const islands=[]; const dist=Math.hypot(cx,cy);
+  const si=storyChunks.get(key);
+  if(cx===0&&cy===0){ islands.push(makeIsland("home",0,-520,170,r,"Port Ohlala",true,0)); }
+  else if(si!=null){ const isl=makeIsland("story"+si,cx*CH+CH/2,cy*CH+CH/2,150+si*8,r,STORY[si].name,false,dist); isl.kind='story'; isl.idx=si; isl.loot=STORY[si].reward; islands.push(isl); }
+  else{
+    const f=r();
+    let count = f<0.5?0 : f<0.88?1 : 2; if(dist<=1.5 && count===0) count=1;
+    for(let i=0;i<count;i++){
+      const R=70+r()*170+Math.min(90,dist*4); const m=R*1.5+40;
+      const x=cx*CH+m+r()*(CH-2*m), y=cy*CH+m+r()*(CH-2*m);
+      if(islands.some(o=>Math.hypot(o.x-x,o.y-y)<(o.R+R)*1.9)) continue;
+      islands.push(makeIsland(key+":"+i,x,y,R,r,islandName(r),false,dist));
+    }
+  }
+  const crates=[]; const nc=(r()*3)|0;
+  for(let i=0;i<nc;i++){ const x=cx*CH+40+r()*(CH-80), y=cy*CH+40+r()*(CH-80);
+    if(islands.some(o=>Math.hypot(o.x-x,o.y-y)<o.R*1.9)) continue;
+    crates.push({id:key+":c"+i,x,y,gold:3+((r()*6)|0)+Math.round(dist*1.5),ph:r()*6.28}); }
+  // kraken water: dark patches with tentacles, only far from port
+  const krakens=[]; if(si==null && dist>=2.5 && r()<0.28){ const x=cx*CH+200+r()*(CH-400), y=cy*CH+200+r()*(CH-400);
+    if(!islands.some(o=>Math.hypot(o.x-x,o.y-y)<o.R*1.5+160)) krakens.push({x,y,R:95+r()*45,ph:r()*6.28}); }
+  const waves=[]; for(let i=0;i<22;i++) waves.push([cx*CH+r()*CH, cy*CH+r()*CH, r()*6.28, 10+r()*16]);
+  const fogs=[]; if(si==null && dist>=4 && r()<0.32){ fogs.push({x:cx*CH+300+r()*(CH-600),y:cy*CH+300+r()*(CH-600),rx:380+r()*260,ry:260+r()*200,ph:r()*6.28}); }
+  c={cx,cy,dist,islands,crates,krakens,fogs,waves}; chunks.set(key,c);
+  if(chunks.size>260){ const k=chunks.keys().next().value; chunks.delete(k); }
+  return c;
+}
+function nearbyChunks(x,y,ring){ const cx=Math.floor(x/CH),cy=Math.floor(y/CH),out=[]; for(let i=-ring;i<=ring;i++)for(let j=-ring;j<=ring;j++) out.push(chunk(cx+i,cy+j)); return out; }
+function nearbyIslands(x,y,ring){ return nearbyChunks(x,y,ring).flatMap(c=>c.islands); }
+function hitsLand(x,y,pad){ for(const isl of nearbyIslands(x,y,1)){ const dx=x-isl.x,dy=y-isl.y,d=Math.hypot(dx,dy); if(d<isl.R*1.4 && d<isl.radial(Math.atan2(dy,dx))+pad) return isl; } return null; }
+
+// ---------- state ----------
+const state={ x:230, y:-380, heading:-Math.PI/2, speed:0, throttle:0, anchored:false, gold:0, upg:{sails:0,cannons:0,hull:0,spy:0},
+  hp:100, visited:new Set(["home"]), looted:new Set(), started:false, docked:null, lastDock:{x:230,y:-380,name:'Port Ohlala'}, reload:0, dead:false, kills:0, lastHurt:-99, dayT:90, fog:0, frags:new Set(), bossDown:false, done:false, far:0 };
+const cam={x:state.x,y:state.y};
+let joy=null, shake=0;
+const wake=[], sparks=[], balls=[], puffs=[], enemies=[];
+const maxSpeed=()=>BASE_SPEED*(1+0.12*state.upg.sails);
+const maxHp=()=>100+40*state.upg.hull;
+const cannonRange=()=>230+35*state.upg.cannons;
+const cannonDmg=()=>10+4*state.upg.cannons;
+const chunkDist=()=>Math.hypot(state.x,state.y)/CH;
+
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({x:state.x,y:state.y,heading:state.heading,gold:state.gold,upg:state.upg,hp:state.hp,kills:state.kills,lastDock:state.lastDock,visited:[...state.visited],looted:[...state.looted],frags:[...state.frags],bossDown:state.bossDown,done:state.done,far:state.far,dayT:state.dayT})); }catch(e){} }
+function applySave(s){ Object.assign(state,{x:s.x,y:s.y,heading:s.heading,gold:s.gold||0,kills:s.kills||0}); state.upg=Object.assign({sails:0,cannons:0,hull:0,spy:0},s.upg||{}); state.hp=s.hp??maxHp(); if(s.lastDock) state.lastDock=s.lastDock; state.visited=new Set(s.visited||["home"]); state.looted=new Set(s.looted||[]); state.frags=new Set(s.frags||[]); state.bossDown=!!s.bossDown; state.done=!!s.done; state.far=s.far||0; state.dayT=s.dayT??90; cam.x=state.x;cam.y=state.y; }
+function load(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!s) return false; applySave(s); return true; }catch(e){ return false; } }
+
+// ---------- canvas ----------
+const cv=document.getElementById('game'), ctx=cv.getContext('2d');
+const mm=document.getElementById('minimap'), mctx=mm.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth;H=innerHeight; cv.width=W*DPR;cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',resize); resize();
+
+// ---------- input ----------
+cv.addEventListener('pointerdown',e=>{ if(!state.started||state.docked||state.dead) return; joy={ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY,id:e.pointerId}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove',e=>{ if(joy&&e.pointerId===joy.id){ joy.x=e.clientX; joy.y=e.clientY; } });
+const endJoy=e=>{ if(joy&&e.pointerId===joy.id) joy=null; };
+cv.addEventListener('pointerup',endJoy); cv.addEventListener('pointercancel',endJoy);
+const anchorBtn=document.getElementById('anchor');
+function setAnchor(v){ state.anchored=v; anchorBtn.classList.toggle('on',v); if(v) state.throttle=0; }
+anchorBtn.addEventListener('click',()=>setAnchor(!state.anchored));
+
+// ---------- toast / fx ----------
+const toast=document.getElementById('toast'), toastName=document.getElementById('toastName'), toastKicker=document.getElementById('toastKicker'), flash=document.getElementById('flash'); let toastT=0, flashA=0;
+function showToast(name,kicker,alert){ toastName.textContent=name; toastKicker.textContent=kicker||'Land ho!'; toast.classList.toggle('alert',!!alert); toast.style.opacity=1; toastT=2.6; }
+function gain(g,x,y){ state.gold+=g; Snd.play('coin'); for(let i=0;i<8;i++) sparks.push({x,y,vx:(Math.random()-.5)*120,vy:-60-Math.random()*80,a:1,c:'255,215,90'}); }
+function puff(x,y,n,c){ for(let i=0;i<n;i++) puffs.push({x,y,vx:(Math.random()-.5)*40,vy:(Math.random()-.5)*40,r:4+Math.random()*4,a:0.7,c:c||'230,230,230'}); }
+function hurt(d){ if(state.dead||state.docked) return; state.hp-=d; state.lastHurt=t; flashA=0.45; shake=6; Snd.play('hurt'); if(state.hp<=0) sink(); }
+
+// ---------- combat ----------
+function spawnEnemy(){
+  const cd=chunkDist(); const a=Math.random()*6.28, dist=650+Math.random()*250;
+  const x=state.x+Math.cos(a)*dist, y=state.y+Math.sin(a)*dist; if(hitsLand(x,y,60)) return;
+  const tier=Math.min(6,Math.max(0,cd-SAFE_CHUNKS));
+  enemies.push({x,y,heading:Math.random()*6.28,speed:0,maxSpeed:150+tier*9,hp:30+tier*9,maxHp:30+tier*9,dmg:8+tier*1.6,reload:1.5+Math.random(),bounty:10+Math.round(tier*5+Math.random()*8),aggro:false,sink:0,wobble:Math.random()*6.28});
+  if(enemies.length===1){ showToast('Navy sloop sighted','Sail ho!',true); Snd.play('alarm'); }
+}
+function updateEnemies(dt){
+  const cd=chunkDist(); const want = cd<SAFE_CHUNKS ? 0 : Math.min(3, 1+Math.floor((cd-SAFE_CHUNKS)/2.5));
+  if(enemies.filter(e=>!e.sink&&!e.boss).length<want && Math.random()<dt*0.35) spawnEnemy();
+  // the Admiral guards the last island once ye hold the other six pieces
+  if(!state.bossDown && !enemies.some(e=>e.boss) && nextStory()===6){ const fp=storyPos(6); if(Math.hypot(fp.x-state.x,fp.y-state.y)<900){
+    const a=Math.atan2(state.y-fp.y,state.x-fp.x); const bx=fp.x+Math.cos(a)*330, by=fp.y+Math.sin(a)*330;
+    enemies.push({x:bx,y:by,heading:a,speed:0,maxSpeed:175,hp:260,maxHp:260,dmg:13,reload:2,bounty:300,aggro:true,sink:0,wobble:0,boss:true});
+    showToast('HMS Inevitable','The Admiral!',true); Snd.play('alarm'); } }
+  for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i];
+    const dx=state.x-e.x, dy=state.y-e.y, d=Math.hypot(dx,dy);
+    if(d>1700 && !e.aggro){ enemies.splice(i,1); continue; }
+    if(e.sink>0){ e.sink+=dt; if(e.sink>2.2) enemies.splice(i,1); continue; }
+    // behaviour: patrol until player within 520, then chase & keep ~170 px
+    if(d<520) e.aggro=true; if(d>1100&&!e.boss) e.aggro=false;
+    let target;
+    if(e.aggro && !state.docked){ const toP=Math.atan2(dy,dx); target = d>190 ? toP : toP+Math.PI/2; e.speed=lerp(e.speed,e.maxSpeed,1-Math.exp(-0.8*dt)); }
+    else { e.wobble+=dt*0.3; target=e.heading+Math.sin(e.wobble)*0.4; e.speed=lerp(e.speed,e.maxSpeed*0.45,1-Math.exp(-0.5*dt)); }
+    // island avoidance: probe ahead
+    const probe=e.aggro?60:110; const px=e.x+Math.cos(e.heading)*probe, py=e.y+Math.sin(e.heading)*probe; const land=hitsLand(px,py,e.aggro?20:40);
+    if(land){ const away=Math.atan2(py-land.y,px-land.x); target=away; }
+    const diff=angDiff(e.heading,target); e.heading+=clamp(diff,-1.6*dt,1.6*dt);
+    e.x+=Math.cos(e.heading)*e.speed*dt; e.y+=Math.sin(e.heading)*e.speed*dt;
+    const hit=hitsLand(e.x,e.y,HULL_R); if(hit){ const th=Math.atan2(e.y-hit.y,e.x-hit.x), rr=hit.radial(th)+HULL_R; e.x=hit.x+Math.cos(th)*rr; e.y=hit.y+Math.sin(th)*rr; e.speed*=0.3; }
+    // fire
+    e.reload-=dt;
+    if(e.aggro && !state.docked && d<300 && e.reload<=0){ e.reload=2.4; const lead=0.45; const tx=state.x+Math.cos(state.heading)*state.speed*lead, ty=state.y+Math.sin(state.heading)*state.speed*lead;
+      const a=Math.atan2(ty-e.y,tx-e.x)+(Math.random()-.5)*0.18; const spread=e.boss?[-0.22,0,0.22]:[0];
+      Snd.play('cannon',clamp(1-d/700,0.15,0.7)); for(const sp of spread) balls.push({x:e.x,y:e.y,vx:Math.cos(a+sp)*340,vy:Math.sin(a+sp)*340,life:d/340+0.25,from:'e',dmg:e.dmg}); puff(e.x,e.y,e.boss?8:4); }
+  }
+}
+function updateCombat(dt){
+  // player auto-fire at nearest live enemy in range
+  state.reload-=dt;
+  if(state.reload<=0 && !state.docked){ let best=null,bd=cannonRange();
+    for(const e of enemies){ if(e.sink) continue; const d=Math.hypot(e.x-state.x,e.y-state.y); if(d<bd){bd=d;best=e;} }
+    if(best){ state.reload=1.3; const lead=bd/420; const tx=best.x+Math.cos(best.heading)*best.speed*lead, ty=best.y+Math.sin(best.heading)*best.speed*lead;
+      const a=Math.atan2(ty-state.y,tx-state.x)+(Math.random()-.5)*0.1; Snd.play('cannon',1); balls.push({x:state.x,y:state.y,vx:Math.cos(a)*420,vy:Math.sin(a)*420,life:cannonRange()/420+0.15,from:'p',dmg:cannonDmg()}); puff(state.x+Math.cos(a)*18,state.y+Math.sin(a)*18,5); shake=Math.max(shake,1.5); } }
+  for(let i=balls.length-1;i>=0;i--){ const b=balls[i]; b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
+    let done=b.life<=0;
+    if(!done && hitsLand(b.x,b.y,0)){ puff(b.x,b.y,3,'200,180,140'); done=true; }
+    if(!done && b.from==='p'){ for(const e of enemies){ if(e.sink) continue; if(Math.hypot(e.x-b.x,e.y-b.y)<(e.boss?26:17)){ e.hp-=b.dmg; e.aggro=true; puff(b.x,b.y,5,'255,140,60'); done=true; Snd.play('hit');
+      if(e.hp<=0){ e.sink=0.01; state.kills++; Snd.play('sink'); gain(e.bounty,e.x,e.y); if(e.boss){ state.bossDown=true; showToast('The Inevitable was evitable','+'+e.bounty+' gold'); save(); } else showToast('+'+e.bounty+' gold bounty','Sloop sunk!'); } break; } } }
+    if(!done && b.from==='e' && Math.hypot(state.x-b.x,state.y-b.y)<15){ hurt(b.dmg); puff(b.x,b.y,5,'255,140,60'); done=true; }
+    if(done){ if(b.life<=0) puff(b.x,b.y,2,'200,225,240'); balls.splice(i,1); }
+  }
+  // kraken water
+  for(const c of nearbyChunks(state.x,state.y,1)) for(const k of c.krakens){ if(Math.hypot(k.x-state.x,k.y-state.y)<k.R){ state.speed*=Math.exp(-1.2*dt); if(Math.random()<dt*2){ hurt(4); puff(state.x,state.y,2,'94,39,51'); } } }
+}
+function sink(){
+  state.dead=true; joy=null; const lost=Math.floor(state.gold/2); state.gold-=lost; enemies.length=0; balls.length=0;
+  document.getElementById('title').classList.add('sunk'); document.getElementById('titleH').textContent='Sunk!';
+  document.getElementById('titleP').textContent=SUNK[(Math.random()*SUNK.length)|0]+' Lost '+lost+' gold. Ye wash up at '+state.lastDock.name+'.';
+  document.getElementById('titleHint').textContent='Tip: the Navy is slower than a ship with good sails. Kraken water is the dark stuff.';
+  document.getElementById('sail').textContent='Back to sea'; document.getElementById('newgame').hidden=true; document.getElementById('title').hidden=false; anchorBtn.hidden=true; dockBtn.hidden=true;
+  state.x=state.lastDock.x; state.y=state.lastDock.y; state.hp=maxHp(); state.speed=0; state.throttle=0; setAnchor(false); cam.x=state.x; cam.y=state.y; save();
+}
+
+// ---------- docking ----------
+const dockBtn=document.getElementById('dock'), sheet=document.getElementById('sheet');
+let dockTarget=null;
+function updateDockTarget(){
+  dockTarget=null; if(state.speed>75) { dockBtn.hidden=true; return; }
+  let best=null,bd=1e9;
+  for(const isl of nearbyIslands(state.x,state.y,1)){ const d=Math.hypot(isl.x-state.x,isl.y-state.y); if(d<isl.R*1.75&&d<bd){best=isl;bd=d;} }
+  dockTarget=best; dockBtn.hidden=!best||!!state.docked;
+  if(best){ const underFire=enemies.some(e=>!e.sink&&e.aggro&&Math.hypot(e.x-state.x,e.y-state.y)<260) || (t-state.lastHurt<3); dockBtn.disabled=underFire; dockBtn.textContent=underFire?'Under fire!':'⚓ Dock at '+best.name; }
+}
+dockBtn.addEventListener('click',()=>{ if(!dockTarget) return; try{ openDock(dockTarget); }catch(e){ console.error(e); castOff(); } });
+function openDock(isl){ state.docked=isl; Snd.play('splash'); for(const e of enemies){ e.aggro=false; e.heading=Math.atan2(e.y-state.y,e.x-state.x); } setAnchor(true); state.speed=0; joy=null; dockBtn.hidden=true; anchorBtn.hidden=true;
+  state.lastDock={x:state.x,y:state.y,name:isl.name};
+  const heal=Math.min(maxHp()-state.hp, Math.round(maxHp()*0.3)); if(heal>0){ state.hp+=heal; state.healed=heal; } else state.healed=0;
+  renderSheet(); sheet.hidden=false; save(); }
+function bindOff(){ sheet.querySelectorAll('#off,#xoff').forEach(b=>b.onclick=castOff); }
+function castOff(){ if(!state.docked&&sheet.hidden) return; state.docked=null; sheet.hidden=true; anchorBtn.hidden=false; setAnchor(false); state.throttle=0; save(); }
+const KIND_LABEL={treasure:'Treasure island',bottle:'Message in a bottle',trader:'Trading post',empty:'Deserted island',story:'Marked on the map'};
+function renderSheet(){
+  const isl=state.docked; const done=state.looted.has(isl.id); let html=`<h2>${isl.name}</h2><div class="kind">${isl.home?'Home port':KIND_LABEL[isl.kind]}</div>`;
+  if(state.healed) html+=`<p style="color:var(--green)">The crew patches the hull. <b>+${state.healed} hull</b></p>`;
+  if(isl.kind==='story'){
+    const st=STORY[isl.idx], have=state.frags.has(isl.idx), missing=STORY.length-1-[...state.frags].filter(i=>i<6).length;
+    html += `<p class="kind" style="margin-top:-6px">${st.who}</p>`;
+    if(have){ html += `<p>${isl.idx===6?'The empty chest sits where ye left it. The parrot still has opinions.':'Nothing here now but footprints and a cold fire. Ye already have this piece.'}</p><div class="actions"><button class="btn quiet" id="off">Cast off</button></div>`; }
+    else if(isl.idx===6 && missing>0){ html += `<p>Ye find the X. Ye dig. Ye hit a plank with words burned into it: <i>"Come back with all six pieces, ye impatient barnacle."</i></p><p>Ye're missing ${missing}.</p><div class="actions"><button class="btn quiet" id="off">Cast off</button></div>`; }
+    else { html += st.say.map(l=>`<p class="say">${l}</p>`).join('') + `<div class="actions"><button class="btn" id="act">${isl.idx===6?'Take the treasure':'Take the map piece'}</button><button class="btn quiet" id="off">Not now</button></div>`; }
+  } else if(isl.kind==='treasure'){
+    html += done ? `<p>A hole in the sand and a very smug-looking crab. Ye already dug here.</p>` : `<p>The sand here looks… suspiciously disturbed. Someone buried something.</p>`;
+    html += `<div class="actions">${done?'':`<button class="btn" id="act">Dig for treasure</button>`}<button class="btn quiet" id="off">Cast off</button></div>`;
+  } else if(isl.kind==='bottle'){
+    html += done ? `<p class="say">${isl.text}</p><p>Ye already pocketed the coins that were rattling in the bottle.</p>` : `<p>A bottle bobs in the shallows, a note curled inside.</p>`;
+    html += `<div class="actions">${done?'':`<button class="btn" id="act">Read the note</button>`}<button class="btn quiet" id="off">Cast off</button></div>`;
+  } else if(isl.kind==='trader'){
+    const missing=maxHp()-state.hp, repairCost=Math.ceil(missing/5);
+    html += `<p class="say">${isl.text}</p><div class="shop">`;
+    html += `<div class="item"><b>Repairs <span style="font-size:14px;color:var(--ink-soft)">${state.hp}/${maxHp()} hull</span></b><small>Full patch-up, 1 gold per 5 hull</small><button class="btn" id="repair" ${missing<=0||state.gold<repairCost?'disabled':''}>${missing<=0?'Shipshape':repairCost+' g'}</button></div>`;
+    for(const k in UPGRADES){ const u=UPGRADES[k], lv=state.upg[k], maxed=lv>=u.max, price=maxed?0:u.prices[lv];
+      html += `<div class="item"><b>${u.name} <span style="font-size:14px;color:var(--ink-soft)">Lv ${lv}/${u.max}</span></b><small>${u.desc}</small>
+        <button class="btn" data-buy="${k}" ${maxed||state.gold<price?'disabled':''}>${maxed?'Maxed':price+' g'}</button></div>`; }
+    html += `</div><div class="actions"><button class="btn quiet" id="off">Cast off</button></div>`;
+  } else {
+    html += `<p>${isl.text}</p><div class="actions"><button class="btn quiet" id="off">Cast off</button></div>`;
+  }
+  sheet.innerHTML=html+'<button class="x" id="xoff" aria-label="Cast off">✕</button>';
+  bindOff();
+  const act=sheet.querySelector('#act'); if(act) act.onclick=()=>{ state.looted.add(isl.id); gain(isl.loot,isl.x,isl.y); state.healed=0;
+    if(isl.kind==='story'){ state.frags.add(isl.idx); save();
+      if(isl.idx===6){ state.done=true; Snd.play('fanfare'); const txt=`I found Captain Ohlala's treasure in Arrr You Lost? — 7 map pieces, ${state.kills} Navy ships sunk, ${state.far.toFixed(1)} leagues from port.`;
+        sheet.innerHTML=`<h2>The treasure is yers</h2><div class="kind">The end — of the map, not the sea</div><p><b>+${isl.loot} gold.</b> The map is complete. The sea isn't: it goes on forever, and the Navy gets meaner the further ye sail. How far can ye get?</p><div class="actions"><button class="btn" id="share">Share yer tale</button><button class="btn quiet" id="off">Keep sailing</button></div>`;
+        sheet.querySelector('#share').onclick=async()=>{ try{ if(navigator.share) await navigator.share({text:txt}); else { await navigator.clipboard.writeText(txt); showToast('Copied to clipboard','Tale'); } }catch(e){} };
+      } else { const nx=nextStory(); sheet.innerHTML=`<h2>${isl.name}</h2><div class="kind">Map piece ${isl.idx+1} of 7</div><p>The scrap fits the others. <b>+${isl.loot} gold</b> for yer trouble.</p><p>${nx>=0?'The compass now points to <b>'+STORY[nx].name+'</b>.':''}</p><div class="actions"><button class="btn quiet" id="off">Cast off</button></div>`; }
+      bindOff(); return; }
+    if(isl.kind==='treasure') sheet.innerHTML=`<h2>${isl.name}</h2><div class="kind">Treasure island</div><p>${isl.text}</p><p><b>+${isl.loot} gold</b></p><div class="actions"><button class="btn quiet" id="off">Cast off</button></div>`;
+    else sheet.innerHTML=`<h2>${isl.name}</h2><div class="kind">Message in a bottle</div><p class="say">${isl.text}</p><p>A few coins rattle in the bottle. <b>+${isl.loot} gold</b></p><div class="actions"><button class="btn quiet" id="off">Cast off</button></div>`;
+    bindOff(); save(); };
+  const rep=sheet.querySelector('#repair'); if(rep) rep.onclick=()=>{ const cost=Math.ceil((maxHp()-state.hp)/5); if(state.gold<cost) return; state.gold-=cost; state.hp=maxHp(); state.healed=0; save(); renderSheet(); };
+  sheet.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{ const k=b.dataset.buy, u=UPGRADES[k], lv=state.upg[k]; const price=u.prices[lv]; if(state.gold<price||lv>=u.max) return; state.gold-=price; state.upg[k]=lv+1; Snd.play('buy'); if(k==='hull') state.hp+=40; state.healed=0; showToast(u.name+' Lv '+(lv+1),'Purchased'); save(); renderSheet(); });
+}
+
+// ---------- update ----------
+function update(dt){
+  if(!state.docked && joy){
+    const dx=joy.x-joy.ox, dy=joy.y-joy.oy, len=Math.hypot(dx,dy);
+    if(len>8){
+      const target=Math.atan2(dy,dx); const d=angDiff(state.heading,target);
+      const turn=TURN_RATE*(0.55+0.45*Math.min(1,state.speed/maxSpeed()*1.5+0.3))*dt;
+      state.heading += clamp(d,-turn,turn);
+      state.throttle = clamp((len-8)/80, 0.25, 1);
+      if(state.anchored) setAnchor(false);
+    }
+  }
+  const targetSpeed = state.anchored ? 0 : state.throttle*maxSpeed();
+  const acc = targetSpeed>state.speed ? 0.7 : (state.anchored?2.2:0.5);
+  state.speed = lerp(state.speed, targetSpeed, 1-Math.exp(-acc*dt));
+  const vx=Math.cos(state.heading)*state.speed, vy=Math.sin(state.heading)*state.speed;
+  state.x+=vx*dt; state.y+=vy*dt;
+
+  for(const c of nearbyChunks(state.x,state.y,1)){
+    for(const isl of c.islands){
+      const dx=state.x-isl.x, dy=state.y-isl.y, d=Math.hypot(dx,dy);
+      if(d<isl.R*1.7){
+        const th=Math.atan2(dy,dx), rr=isl.radial(th)+HULL_R;
+        if(d<rr){ state.x=isl.x+Math.cos(th)*(rr+1.5); state.y=isl.y+Math.sin(th)*(rr+1.5); if(state.speed>60){ Snd.play('splash'); puff(state.x,state.y,4,'230,240,245'); } state.speed*=0.5; }
+        if(d<isl.R*1.6 && !state.visited.has(isl.id)){ state.visited.add(isl.id); showToast(isl.name); Snd.play('discover'); save(); }
+      }
+    }
+    for(const cr of c.crates){ if(state.looted.has(cr.id)) continue; if(Math.hypot(cr.x-state.x,cr.y-state.y)<26){ state.looted.add(cr.id); gain(cr.gold,cr.x,cr.y); showToast('+'+cr.gold+' gold','Flotsam'); } }
+  }
+  updateEnemies(dt); updateCombat(dt); updateDockTarget();
+  if(state.speed>20 && Math.random()<state.speed/maxSpeed()*0.9){
+    const bx=state.x-Math.cos(state.heading)*14, by=state.y-Math.sin(state.heading)*14;
+    wake.push({x:bx+(Math.random()-.5)*8,y:by+(Math.random()-.5)*8,r:3+Math.random()*3,a:0.55,vx:-vx*0.15,vy:-vy*0.15});
+  }
+  for(const e of enemies){ if(!e.sink && e.speed>30 && Math.random()<0.5) wake.push({x:e.x-Math.cos(e.heading)*14,y:e.y-Math.sin(e.heading)*14,r:3,a:0.4,vx:0,vy:0}); }
+  for(let i=wake.length-1;i>=0;i--){ const w=wake[i]; w.x+=w.vx*dt; w.y+=w.vy*dt; w.r+=14*dt; w.a-=0.45*dt; if(w.a<=0) wake.splice(i,1); }
+  for(let i=sparks.length-1;i>=0;i--){ const s=sparks[i]; s.x+=s.vx*dt; s.y+=s.vy*dt; s.vy+=120*dt; s.a-=1.2*dt; if(s.a<=0) sparks.splice(i,1); }
+  for(let i=puffs.length-1;i>=0;i--){ const p=puffs[i]; p.x+=p.vx*dt; p.y+=p.vy*dt; p.r+=10*dt; p.a-=1.1*dt; if(p.a<=0) puffs.splice(i,1); }
+  const lead=0.45; cam.x=lerp(cam.x,state.x+vx*lead,1-Math.exp(-2.5*dt)); cam.y=lerp(cam.y,state.y+vy*lead,1-Math.exp(-2.5*dt));
+  if(toastT>0){ toastT-=dt; if(toastT<=0) toast.style.opacity=0; }
+  if(flashA>0){ flashA=Math.max(0,flashA-1.6*dt); flash.style.opacity=flashA; }
+  shake=Math.max(0,shake-12*dt);
+  state.dayT+=dt;
+  // fog: how deep inside the nearest bank we are (0..1)
+  let fog=0; for(const c of nearbyChunks(state.x,state.y,1)) for(const f of c.fogs){ const fx=f.x+Math.sin(t*0.05+f.ph)*40; const nd=Math.hypot((state.x-fx)/f.rx,(state.y-f.y)/f.ry); fog=Math.max(fog,clamp(1.5*(1-nd),0,1)); }
+  state.fog=lerp(state.fog,fog,1-Math.exp(-2*dt));
+  if(Math.random()<dt*0.06 && nearbyIslands(state.x,state.y,1).some(i=>Math.hypot(i.x-state.x,i.y-state.y)<i.R+420)) Snd.play('gull');
+}
+
+// ---------- render ----------
+let t=0;
+const DAY_LEN=540; // seconds per full day
+function dayNight(){ const ph=(state.dayT%DAY_LEN)/DAY_LEN; const light=0.5+0.5*Math.cos(ph*6.2832); return clamp(1.7*(0.6-light),0,1); }
+function mix(a,b,k){ return [0,1,2].map(i=>Math.round(a[i]+(b[i]-a[i])*k)); }
+function drawNight(ox,oy,night){
+  if(night<0.01) return; const px=state.x-ox, py=state.y-oy, flick=1+Math.sin(t*7)*0.04+Math.sin(t*13)*0.03;
+  const g=ctx.createRadialGradient(px,py,20*flick,px,py,320*flick); g.addColorStop(0,'rgba(255,190,110,'+(0.16*night)+')'); g.addColorStop(0.35,'rgba(60,45,60,'+(0.25*night)+')'); g.addColorStop(1,'rgba(4,10,30,'+(0.56*night)+')');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+}
+function drawFog(f,ox,oy){
+  const fx=f.x+Math.sin(t*0.05+f.ph)*40-ox, fy=f.y-oy; if(fx<-f.rx||fy<-f.ry||fx>W+f.rx||fy>H+f.ry) return;
+  ctx.save(); ctx.translate(fx,fy); ctx.scale(1,f.ry/f.rx); const g=ctx.createRadialGradient(0,0,f.rx*0.2,0,0,f.rx); g.addColorStop(0,'rgba(220,228,234,0.55)'); g.addColorStop(0.7,'rgba(220,228,234,0.35)'); g.addColorStop(1,'rgba(220,228,234,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,f.rx,0,6.29); ctx.fill(); ctx.restore();
+}
+function drawGulls(isl,ox,oy){
+  const d=Math.hypot(isl.x-state.x,isl.y-state.y); if(d>isl.R+700) return;
+  ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=1.6; ctx.lineCap='round';
+  for(let i=0;i<isl.gulls;i++){ const a=t*0.5*(i?-1:1)+i*2.1+isl.x*0.01, r=isl.R*(0.7+0.3*i), gx=isl.x-ox+Math.cos(a)*r, gy=isl.y-oy+Math.sin(a)*r*0.6-isl.R*0.3; const w=Math.sin(t*9+i)*3;
+    ctx.beginPath(); ctx.moveTo(gx-7,gy+w); ctx.quadraticCurveTo(gx-3,gy-2,gx,gy); ctx.quadraticCurveTo(gx+3,gy-2,gx+7,gy+w); ctx.stroke(); }
+}
+function drawIsland(isl,ox,oy){
+  ctx.save(); ctx.translate(isl.x-ox,isl.y-oy);
+  ctx.fillStyle='#2b7ba6'; ctx.fill(isl.shallow);
+  ctx.fillStyle='#4fa3c9'; ctx.fill(isl.foam);
+  ctx.strokeStyle='rgba(255,255,255,'+(0.35+0.2*Math.sin(t*1.6+isl.x))+')'; ctx.lineWidth=2.5; ctx.stroke(isl.foam);
+  ctx.fillStyle='#e6d29b'; ctx.fill(isl.sand);
+  ctx.fillStyle='#3f7d3a'; ctx.fill(isl.grass);
+  ctx.fillStyle='#4f9447'; ctx.save(); ctx.scale(0.8,0.8); ctx.translate(-isl.R*0.06,-isl.R*0.08); ctx.fill(isl.grass); ctx.restore();
+  for(const [x,y,s] of isl.trees){
+    ctx.strokeStyle='#5a3d1e'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+3*s,y-9*s); ctx.stroke();
+    ctx.fillStyle='#2e6b2c'; for(let k=0;k<5;k++){ const a=k/5*6.28+t*0.3*s; ctx.beginPath(); ctx.ellipse(x+3*s+Math.cos(a)*5*s,y-9*s+Math.sin(a)*3*s,6*s,2.2*s,a,0,6.29); ctx.fill(); }
+  }
+  ctx.fillStyle='#6a6a66'; for(const [x,y,r] of isl.rocks){ ctx.beginPath(); ctx.moveTo(x-r,y+r*0.4); ctx.lineTo(x-r*0.3,y-r); ctx.lineTo(x+r*0.5,y-r*0.6); ctx.lineTo(x+r,y+r*0.4); ctx.closePath(); ctx.fill(); }
+  if(isl.kind==='trader'){ ctx.fillStyle='#7a4a25'; ctx.fillRect(-9,-4,18,12); ctx.fillStyle='#c9a24a'; ctx.beginPath(); ctx.moveTo(-13,-4); ctx.lineTo(0,-16); ctx.lineTo(13,-4); ctx.closePath(); ctx.fill(); ctx.fillStyle='#2a1a0b'; ctx.fillRect(-3,1,6,7); }
+  else if(isl.kind==='story'){ const f=(0.8+0.2*Math.sin(t*11+isl.x))*(1+0.6*dayNight()); ctx.fillStyle='#4a3020'; ctx.fillRect(-9,6,18,4); ctx.fillStyle='rgba(255,150,40,'+(0.35*f)+')'; ctx.beginPath(); ctx.arc(0,0,22*f,0,6.29); ctx.fill();
+    ctx.fillStyle='#ff9a2a'; ctx.beginPath(); ctx.moveTo(-7,6); ctx.quadraticCurveTo(-6,-6*f,0,-14*f); ctx.quadraticCurveTo(6,-6*f,7,6); ctx.fill(); ctx.fillStyle='#ffd34a'; ctx.beginPath(); ctx.moveTo(-3,6); ctx.quadraticCurveTo(-3,-2*f,0,-7*f); ctx.quadraticCurveTo(3,-2*f,3,6); ctx.fill(); }
+  else if(isl.kind==='treasure' && state.visited.has(isl.id) && !state.looted.has(isl.id)){ ctx.strokeStyle='#a5382b'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-7,-7); ctx.lineTo(7,7); ctx.moveTo(7,-7); ctx.lineTo(-7,7); ctx.stroke(); }
+  ctx.restore();
+}
+function drawKraken(k,ox,oy){
+  ctx.save(); ctx.translate(k.x-ox,k.y-oy);
+  // deep water: darker blue-green, blending into the sea at the edge
+  const g=ctx.createRadialGradient(0,0,k.R*0.1,0,0,k.R*1.15); g.addColorStop(0,'rgba(6,34,52,0.95)'); g.addColorStop(0.6,'rgba(8,48,72,0.7)'); g.addColorStop(1,'rgba(23,84,125,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,k.R*1.15,0,6.29); ctx.fill();
+  // slow whirlpool rings
+  ctx.lineCap='round';
+  for(let i=0;i<3;i++){ const rr=k.R*(0.35+i*0.22), a0=-t*(0.5-i*0.1)+k.ph+i*2; ctx.strokeStyle='rgba(255,255,255,'+(0.10-i*0.02)+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,rr,a0,a0+2.6); ctx.stroke(); ctx.beginPath(); ctx.arc(0,0,rr,a0+3.6,a0+5.6); ctx.stroke(); }
+  // tentacles: tapered, octopus-skin, rising and diving
+  for(let i=0;i<5;i++){
+    const a=i/5*6.28+k.ph+Math.sin(t*0.4+i)*0.15, ph=t*0.9+i*1.3, up=0.55+0.45*Math.sin(ph*0.7); // 'up' = how far out of the water
+    if(up<0.2) continue;
+    const L=k.R*0.62*up, bx=Math.cos(a)*k.R*0.28, by=Math.sin(a)*k.R*0.28;
+    const c1x=bx+Math.cos(a+Math.sin(ph)*0.5)*L*0.55, c1y=by+Math.sin(a+Math.sin(ph)*0.5)*L*0.55;
+    const curl=a+Math.sin(ph)*0.5+1.6*Math.sin(ph*0.5+i);
+    const ex=c1x+Math.cos(curl)*L*0.5, ey=c1y+Math.sin(curl)*L*0.5;
+    const pts=[]; for(let s=0;s<=1.001;s+=0.07){ const u=1-s; pts.push([u*u*bx+2*u*s*c1x+s*s*ex, u*u*by+2*u*s*c1y+s*s*ey, (1-s)*8.5*up+2.2]); }
+    ctx.fillStyle='rgba(0,0,0,0.25)'; for(const [x,y,r] of pts){ ctx.beginPath(); ctx.arc(x+3,y+4,r,0,6.29); ctx.fill(); }
+    ctx.fillStyle='#5e2733'; for(const [x,y,r] of pts){ ctx.beginPath(); ctx.arc(x,y,r,0,6.29); ctx.fill(); }
+    ctx.fillStyle='#874050'; for(const [x,y,r] of pts){ ctx.beginPath(); ctx.arc(x-r*0.3,y-r*0.3,r*0.55,0,6.29); ctx.fill(); }
+    ctx.fillStyle='#e6c7b5'; for(let j=2;j<pts.length-1;j+=2){ const [x,y,r]=pts[j]; ctx.beginPath(); ctx.arc(x+r*0.45,y+r*0.45,Math.max(1,r*0.28),0,6.29); ctx.fill(); }
+    // splash where it breaks the surface
+    ctx.strokeStyle='rgba(255,255,255,'+(0.25*up)+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(bx,by,9*up+4,0,6.29); ctx.stroke();
+  }
+  // bubbles
+  for(let i=0;i<6;i++){ const ph=(t*0.5+i*0.37+k.ph)%1, a=i*1.9+k.ph; const r=k.R*0.15+ph*k.R*0.5; ctx.fillStyle='rgba(255,255,255,'+(0.35*(1-ph))+')'; ctx.beginPath(); ctx.arc(Math.cos(a)*r,Math.sin(a)*r,1.5+ph*2,0,6.29); ctx.fill(); }
+  ctx.restore();
+}
+function drawCrate(cr,ox,oy){
+  const b=Math.sin(t*1.5+cr.ph)*1.5; ctx.save(); ctx.translate(cr.x-ox,cr.y-oy+b); ctx.rotate(Math.sin(t*0.8+cr.ph)*0.15);
+  ctx.fillStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(0,4,12,6,0,0,6.29); ctx.fill();
+  ctx.fillStyle='#8a5a2b'; ctx.fillRect(-9,-9,18,18); ctx.strokeStyle='#5a3a18'; ctx.lineWidth=2; ctx.strokeRect(-9,-9,18,18); ctx.beginPath(); ctx.moveTo(-9,-9); ctx.lineTo(9,9); ctx.moveTo(9,-9); ctx.lineTo(-9,9); ctx.stroke();
+  ctx.restore();
+}
+function drawHull(hull,deck,sail,flag,speedRatio,sinkT){
+  if(sinkT){ ctx.globalAlpha=Math.max(0,1-sinkT/2.2); ctx.rotate(sinkT*0.3); ctx.scale(1-sinkT*0.2,1-sinkT*0.2); }
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(2,3,20,9,0,0,6.29); ctx.fill();
+  ctx.fillStyle=hull; ctx.beginPath(); ctx.moveTo(20,0); ctx.quadraticCurveTo(10,-10,-12,-8); ctx.lineTo(-16,-5); ctx.lineTo(-16,5); ctx.lineTo(-12,8); ctx.quadraticCurveTo(10,10,20,0); ctx.fill();
+  ctx.fillStyle=deck; ctx.beginPath(); ctx.moveTo(15,0); ctx.quadraticCurveTo(8,-6,-10,-5); ctx.lineTo(-13,0); ctx.lineTo(-10,5); ctx.quadraticCurveTo(8,6,15,0); ctx.fill();
+  const bil=4+8*speedRatio;
+  ctx.fillStyle=sail; ctx.beginPath(); ctx.moveTo(0,-9); ctx.quadraticCurveTo(-bil,0,0,9); ctx.lineTo(-3,9); ctx.quadraticCurveTo(-bil-3,0,-3,-9); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#3a2612'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-1.5,-10); ctx.lineTo(-1.5,10); ctx.stroke();
+  ctx.fillStyle=flag; ctx.beginPath(); ctx.moveTo(-1.5,-10); ctx.lineTo(-9,-13+Math.sin(t*9)*1.5); ctx.lineTo(-1.5,-15); ctx.fill();
+}
+function drawShip(ox,oy){
+  ctx.save(); ctx.translate(state.x-ox,state.y-oy); ctx.rotate(state.heading+Math.sin(t*2.2)*0.03); ctx.scale(1.35,1.35);
+  drawHull('#6b4423','#a67a4b','#f4ead2','#1c1c1c',state.speed/maxSpeed(),0); ctx.restore();
+}
+function drawEnemy(e,ox,oy){
+  const sc=e.boss?2.1:1.3; ctx.save(); ctx.translate(e.x-ox,e.y-oy); ctx.rotate(e.heading+Math.sin(t*2+e.wobble)*0.03); ctx.scale(sc,sc);
+  if(e.boss) drawHull('#1c2438','#d9a441','#efe6d0','#c8322a',e.speed/e.maxSpeed,e.sink); else drawHull('#2b3a5c','#5a6a8c','#e8e8ee','#c8322a',e.speed/e.maxSpeed,e.sink); ctx.restore();
+  if(!e.sink && (e.hp<e.maxHp||e.boss)){ const w=e.boss?60:32, yo=e.boss?-48:-30; ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(e.x-ox-w/2,e.y-oy+yo,w,5); ctx.fillStyle='#c8322a'; ctx.fillRect(e.x-ox-w/2,e.y-oy+yo,w*e.hp/e.maxHp,5);
+    if(e.boss){ ctx.font='14px "Pirata One", Georgia, serif'; ctx.textAlign='center'; ctx.fillStyle='#efe6d0'; ctx.fillText('HMS Inevitable',e.x-ox,e.y-oy+yo-6); } }
+}
+function drawCompass(ox,oy){
+  const nx=nextStory(); if(nx<0||state.docked) return; const tp=storyPos(nx); const dx=tp.x-state.x, dy=tp.y-state.y, d=Math.hypot(dx,dy);
+  if(d<500) return; const a=Math.atan2(dy,dx), px=state.x-ox, py=state.y-oy, r=64;
+  ctx.save(); ctx.translate(px+Math.cos(a)*r,py+Math.sin(a)*r); ctx.rotate(a);
+  ctx.fillStyle='rgba(20,40,60,.5)'; ctx.beginPath(); ctx.moveTo(14,0); ctx.lineTo(-6,-9); ctx.lineTo(-2,0); ctx.lineTo(-6,9); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#efdfb8'; ctx.beginPath(); ctx.moveTo(12,-1); ctx.lineTo(-6,-8); ctx.lineTo(-3,-1); ctx.lineTo(-6,7); ctx.closePath(); ctx.fill(); ctx.restore();
+  ctx.font='13px "IM Fell English", Georgia, serif'; ctx.textAlign='center'; ctx.fillStyle='rgba(239,223,184,.85)';
+  ctx.lineWidth=3; ctx.strokeStyle='rgba(20,40,60,.7)'; ctx.strokeText((d/100).toFixed(1)+' leagues to '+STORY[nx].name, W/2, H-100); ctx.fillText((d/100).toFixed(1)+' leagues to '+STORY[nx].name, W/2, H-100);
+}
+function render(){
+  const sx=(Math.random()-.5)*shake, sy=(Math.random()-.5)*shake;
+  const ox=cam.x-W/2+sx, oy=cam.y-H/2+sy;
+  const night=dayNight(); const seaC=mix([23,84,125],[9,36,62],night); ctx.fillStyle='rgb('+seaC.join(',')+')'; ctx.fillRect(0,0,W,H);
+  const cx0=Math.floor(ox/CH), cy0=Math.floor(oy/CH), cx1=Math.floor((ox+W)/CH), cy1=Math.floor((oy+H)/CH);
+  const visible=[], crates=[], krakens=[], fogs=[];
+  for(let cy=cy0-1;cy<=cy1+1;cy++)for(let cx=cx0-1;cx<=cx1+1;cx++){ const c=chunk(cx,cy);
+    for(const [wx,wy,ph,len] of c.waves){ const a=0.10+0.10*Math.sin(t*0.7+ph); ctx.strokeStyle='rgba(220,240,255,'+a+')'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(wx-ox-len/2,wy-oy); ctx.quadraticCurveTo(wx-ox,wy-oy-3,wx-ox+len/2,wy-oy); ctx.stroke(); }
+    visible.push(...c.islands); krakens.push(...c.krakens); fogs.push(...c.fogs); for(const cr of c.crates) if(!state.looted.has(cr.id)) crates.push(cr);
+  }
+  for(const k of krakens) drawKraken(k,ox,oy);
+  for(const isl of visible) drawIsland(isl,ox,oy);
+  for(const isl of visible) drawGulls(isl,ox,oy);
+  for(const cr of crates) drawCrate(cr,ox,oy);
+  for(const f of fogs) drawFog(f,ox,oy);
+  for(const w of wake){ ctx.fillStyle='rgba(255,255,255,'+w.a+')'; ctx.beginPath(); ctx.arc(w.x-ox,w.y-oy,w.r,0,6.29); ctx.fill(); }
+  for(const e of enemies){ if(state.fog>0.5 && Math.hypot(e.x-state.x,e.y-state.y)>300) continue; drawEnemy(e,ox,oy); }
+  if(!state.dead) drawShip(ox,oy);
+  drawCompass(ox,oy);
+  for(const b of balls){ ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(b.x-ox,b.y-oy,4,0,6.29); ctx.fill(); }
+  for(const p of puffs){ ctx.fillStyle='rgba('+p.c+','+p.a+')'; ctx.beginPath(); ctx.arc(p.x-ox,p.y-oy,p.r,0,6.29); ctx.fill(); }
+  for(const s of sparks){ ctx.fillStyle='rgba('+s.c+','+s.a+')'; ctx.beginPath(); ctx.arc(s.x-ox,s.y-oy,3,0,6.29); ctx.fill(); }
+  // range ring when enemies are around
+  if(enemies.some(e=>!e.sink)){ ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.setLineDash([6,8]); ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(state.x-ox,state.y-oy,cannonRange(),0,6.29); ctx.stroke(); ctx.setLineDash([]); }
+  drawNight(ox,oy,night);
+  if(state.fog>0.02){ const g=ctx.createRadialGradient(state.x-ox,state.y-oy,150,state.x-ox,state.y-oy,420); g.addColorStop(0,'rgba(215,225,232,0)'); g.addColorStop(1,'rgba(215,225,232,'+(0.88*state.fog)+')'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+  ctx.textAlign='center'; ctx.font='20px "Pirata One", Georgia, serif';
+  for(const isl of visible){ const d=Math.hypot(isl.x-state.x,isl.y-state.y); if(d<isl.R+520){ const a=clamp(1-(d-isl.R-200)/320,0,1);
+    const lx=isl.x-ox, ly=isl.y-oy-isl.R*1.45-8; ctx.lineWidth=4; ctx.strokeStyle='rgba(20,40,60,'+(a*0.8)+')'; ctx.strokeText(isl.name,lx,ly); ctx.fillStyle='rgba(240,225,185,'+a+')'; ctx.fillText(isl.name,lx,ly);
+    const sub = isl.kind==='story' ? (state.frags.has(isl.idx)?'':'map piece '+(isl.idx+1)) : !state.visited.has(isl.id) ? 'uncharted' : (isl.kind==='trader' ? 'trading post' : (isl.kind==='treasure'&&!state.looted.has(isl.id)) ? 'treasure?' : '');
+    if(sub){ ctx.font='13px "IM Fell English", Georgia, serif'; ctx.fillStyle='rgba(240,225,185,'+(a*0.8)+')'; ctx.fillText(sub,lx,ly+16); ctx.font='20px "Pirata One", Georgia, serif'; } } }
+  if(joy){ ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(joy.ox,joy.oy,44,0,6.29); ctx.stroke();
+    const dx=joy.x-joy.ox, dy=joy.y-joy.oy, l=Math.hypot(dx,dy)||1, k=Math.min(l,60)/l; ctx.fillStyle='rgba(255,255,255,.55)'; ctx.beginPath(); ctx.arc(joy.ox+dx*k,joy.oy+dy*k,16,0,6.29); ctx.fill(); }
+  renderMinimap();
+}
+function renderMinimap(){
+  const S=236, R=S/2, scale=1/(24*(1+0.4*state.upg.spy)), ring=1+state.upg.spy; mctx.clearRect(0,0,S,S);
+  mctx.save(); mctx.beginPath(); mctx.arc(R,R,R-2,0,6.29); mctx.clip();
+  mctx.fillStyle='#0b2b45'; mctx.fillRect(0,0,S,S);
+  for(const c of nearbyChunks(state.x,state.y,ring)){
+    for(const k of c.krakens){ mctx.fillStyle='rgba(6,34,52,.9)'; mctx.beginPath(); mctx.arc(R+(k.x-state.x)*scale,R+(k.y-state.y)*scale,k.R*scale*2,0,6.29); mctx.fill(); }
+    for(const isl of c.islands){ const mx=R+(isl.x-state.x)*scale, my=R+(isl.y-state.y)*scale; if(mx<-30||my<-30||mx>S+30||my>S+30) continue;
+      mctx.save(); mctx.translate(mx,my); mctx.scale(scale*2,scale*2); mctx.fillStyle=isl.kind==='story'&&!state.frags.has(isl.idx)?'#ff9a2a':state.visited.has(isl.id)?(isl.kind==='trader'?'#d9a441':'#e6d29b'):'#7fa6b8'; mctx.fill(isl.sand); mctx.restore(); }
+    for(const cr of c.crates){ if(state.looted.has(cr.id)) continue; const mx=R+(cr.x-state.x)*scale, my=R+(cr.y-state.y)*scale; mctx.fillStyle='#c98a3a'; mctx.fillRect(mx-2,my-2,4,4); }
+  }
+  for(const e of enemies){ if(e.sink) continue; mctx.fillStyle='#e0402a'; mctx.beginPath(); mctx.arc(R+(e.x-state.x)*scale,R+(e.y-state.y)*scale,4,0,6.29); mctx.fill(); }
+  mctx.fillStyle='#fff'; mctx.save(); mctx.translate(R,R); mctx.rotate(state.heading); mctx.beginPath(); mctx.moveTo(9,0); mctx.lineTo(-6,-6); mctx.lineTo(-3,0); mctx.lineTo(-6,6); mctx.closePath(); mctx.fill(); mctx.restore();
+  mctx.fillStyle='#d9a441'; mctx.font='bold 18px Georgia,serif'; mctx.textAlign='center'; mctx.fillText('N',R,22);
+  mctx.restore();
+}
+// ---------- HUD ----------
+const lgEl=document.getElementById('lg'), knEl=document.getElementById('kn'), islEl=document.getElementById('isl'), goldEl=document.getElementById('gold'), hpEl=document.getElementById('hp'), fragEl=document.getElementById('frag'); let hudT=0;
+function hud(dt){ hudT-=dt; if(hudT>0) return; hudT=0.15; goldEl.textContent=state.gold; lgEl.textContent=(Math.hypot(state.x,state.y)/100).toFixed(1); knEl.textContent=Math.round(state.speed/23); islEl.textContent=state.visited.size; fragEl.textContent=state.frags.size+'/7'; state.far=Math.max(state.far,Math.hypot(state.x,state.y)/100);
+  const r=clamp(state.hp/maxHp(),0,1); hpEl.style.width=(r*100)+'%'; hpEl.classList.toggle('low',r<0.35); }
+
+// ---------- loop ----------
+let last=performance.now(), saveT=0;
+function frame(now){ let dt=(now-last)/1000; last=now; if(dt>0.1) dt=0.1; t+=dt;
+  try{
+    if(state.started&&!state.dead){ update(dt); hud(dt); saveT+=dt; if(saveT>5){ saveT=0; save(); } if(state.docked&&sheet.hidden) castOff(); }
+    render();
+  }catch(e){ console.error(e); }
+  requestAnimationFrame(frame); }
+
+// ---------- boot ----------
+const title=document.getElementById('title');
+function start(){ Snd.resume(); title.hidden=true; state.started=true; state.dead=false; anchorBtn.hidden=false; muteBtn.hidden=false; last=performance.now(); hud(1); }
+document.getElementById('sail').addEventListener('click',start);
+const muteBtn=document.getElementById('mute'); const muteIcon=()=>{ muteBtn.textContent=Snd.muted?'🔇':'🔊'; }; muteIcon();
+muteBtn.addEventListener('click',()=>{ Snd.resume(); Snd.toggle(); muteIcon(); });
+cv.addEventListener('pointerdown',()=>Snd.resume(),{once:true});
+document.getElementById('newgame').addEventListener('click',()=>{ try{localStorage.removeItem(SAVE_KEY);}catch(e){} location.reload(); });
+addEventListener('visibilitychange',()=>{ if(document.hidden&&state.started) save(); });
+
+function boot(hot){
+  if(hot&&hot.x!=null){ applySave(hot); state.speed=hot.speed||0; state.throttle=hot.throttle||0; if(hot.started) start(); }
+  else if(load()){ document.getElementById('newgame').hidden=false; document.getElementById('sail').textContent='Resume voyage'; const rec=document.getElementById('rec'); rec.hidden=false; rec.textContent=`Farthest voyage ${state.far.toFixed(1)} leagues · ${state.kills} Navy ship${state.kills===1?'':'s'} sunk · ${state.frags.size}/7 map pieces · ${state.visited.size} islands charted`; }
+  window.claude?.hot?.snapshot?.(()=>({x:state.x,y:state.y,heading:state.heading,speed:state.speed,throttle:state.throttle,gold:state.gold,upg:state.upg,hp:state.hp,kills:state.kills,lastDock:state.lastDock,visited:[...state.visited],looted:[...state.looted],frags:[...state.frags],bossDown:state.bossDown,done:state.done,far:state.far,dayT:state.dayT,started:state.started}));
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>
