@@ -145,6 +145,24 @@ pip install boto3
 python scripts/stats.py --bucket ohlala-cloud-logs --days 7
 ```
 
+It prints how many people came each day, how many of those were real browsers
+rather than machines, roughly which country they connected from, how long they
+stayed, and which games they opened. All of it is read off the lines CloudFront
+already writes, so there is still nothing in the pages themselves.
+
+Three of those numbers lie a little, in ways worth knowing:
+
+- **Country** is the CloudFront city that served the visitor, not the visitor.
+  Someone in Belgium is often served from Paris or Amsterdam.
+- **How long** is the time between the first page of a visit and the last. A
+  game talks to nobody once it is running, so time spent playing leaves no
+  trace at all. Treat it as a floor.
+- **Was it a person** is decided by whether the visitor also asked for the
+  style sheet and the pictures, the way a browser does on its own. Something
+  taking the HTML and nothing else is a machine whatever it calls itself. A
+  visitor who lands straight on a game is counted separately, because the
+  games ask for no files of ours and so leave nothing to judge on.
+
 ## Ads and feedback
 
 `site.yaml` holds the AdSense publisher id and the Tally form id. Both are empty
