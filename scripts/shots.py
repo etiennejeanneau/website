@@ -25,10 +25,15 @@ the picture is taken, one line per game, in plain words:
     "tap #play, wait 1s"     tap that button (an id from the game's own HTML)
     "tap 195 610"            tap that exact point
     "drag 195 520 to 250 360"  press there, slide there, let go
+    "scroll 170"             slide the page down that many points
     "wait 3s"                just wait
 
 A game steered by sliding a thumb around needs the drag: a tap holds still,
 and a still player makes a dull picture.
+
+A game that is a long page rather than a full screen needs the scroll: the
+card on the home page is a wide slice taken near the top of the picture, so
+the part worth showing has to be moved up into it.
 
 A game with no line here gets its title screen, which is a fine picture too.
 """
@@ -61,6 +66,7 @@ RECIPES = {
     "every-drop-counts": "tap #play, wait 3s",
     "pigeon-in-paris":   "tap, wait 0.9s, tap, wait 0.7s",
     "whack-a-president": "tap 195 607, wait 4s, tap 195 300, wait 0.3s, tap 65 300, wait 1.2s",
+    "waza-kotoba":       'tap [data-mode="image"], wait 1.5s, scroll 170',
 }
 
 
@@ -74,6 +80,10 @@ def steps(recipe: str) -> list[tuple]:
         m = re.fullmatch(r"wait\s+([\d.]+)\s*(m?s)", step)
         if m:
             out.append(("wait", float(m.group(1)) * (1 if m.group(2) == "ms" else 1000)))
+            continue
+        m = re.fullmatch(r"scroll\s+(-?\d+)", step)
+        if m:
+            out.append(("scroll", int(m.group(1))))
             continue
         m = re.fullmatch(r"drag\s+(\d+)\s+(\d+)\s+to\s+(\d+)\s+(\d+)", step)
         if m:
@@ -114,6 +124,9 @@ def capture(browser, slug: str) -> Path:
             page.wait_for_timeout(step[1])
         elif step[0] == "point":
             page.touchscreen.tap(step[1], step[2])
+        elif step[0] == "scroll":
+            page.evaluate("by => window.scrollBy(0, by)", step[1])
+            page.wait_for_timeout(300)
         elif step[0] == "drag":
             # Slowly, in small moves: a game reading a thumb needs to see the
             # finger travel, not teleport.
