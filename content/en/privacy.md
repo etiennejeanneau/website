@@ -20,7 +20,9 @@ else.
 The site is delivered by Amazon CloudFront, and like any web server it writes
 a line for each file it hands out: what was asked for, when, your IP address,
 and the name your browser gives for itself. I count those lines to see roughly
-how many people came by and which games they opened. That is the only thing I
+how many people came by, which games they opened, how long they stayed and
+which part of the world they came from — the last one from the city my
+delivery network served them out of, which is only ever roughly right. That is the only thing I
 do with them, and they are deleted automatically after about thirteen months.
 There is no analytics script on this site and no cookie of mine.
 

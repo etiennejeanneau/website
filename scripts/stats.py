@@ -7,6 +7,24 @@ A "visitor" is a (day, client IP, user agent) triple. That's a rough proxy:
 it undercounts people behind one NAT and overcounts people whose IP changes.
 Good enough to see whether anyone is coming.
 
+A "visit" is one run of requests from the same visitor with no gap longer than
+half an hour. Three things are read off each visit:
+
+  a browser?  A browser asks for the style sheet, the icon and the game
+              pictures all by itself, along with the page. Something that takes
+              the HTML and nothing else, for a whole visit, is a machine
+              whatever name it gives for itself. Everything is cached for five
+              minutes only, so even a long visit re-asks for the style; a
+              returning reader is not mistaken for a robot.
+  where from  The log never names the country. This is the country of the
+              CloudFront city that served the request, so someone in Belgium
+              may well appear as France or the Netherlands. Read these as
+              neighbourhoods, not passports.
+  how long    The time between the first request of a visit and the last. It is
+              a floor, not the truth: a game talks to nobody once it is
+              running, so twenty minutes of playing leaves no line in the log.
+              Reading the site shows up; playing does not.
+
 Usage:
   python scripts/stats.py --bucket ohlala-cloud-logs --days 7
   python scripts/stats.py --bucket ohlala-cloud-logs --days 30 --pages
@@ -19,11 +37,93 @@ import argparse
 import datetime as dt
 import gzip
 import io
+import statistics
 from collections import Counter, defaultdict
 
 import boto3
 
 BOTS = ("bot", "crawl", "spider", "slurp", "facebookexternalhit", "preview", "monitor")
+
+# A new visit starts after this much silence from the same visitor.
+VISIT_GAP = dt.timedelta(minutes=30)
+
+# The files a browser fetches on its own, with nobody clicking anything.
+# Asking for none of them, all visit long, is what gives a scraper away.
+BROWSER_FILES = ("/static/", "/shots/", "/favicon.ico")
+
+# How long a visit lasted, in words.
+LENGTHS = ((30, "under 30 s"), (120, "30 s to 2 min"), (600, "2 to 10 min"),
+           (1800, "10 to 30 min"), (None, "over 30 min"))
+
+# The log says which CloudFront city served the request (IAD, CDG, ...) and
+# never the visitor's country. This turns the city into the country around it.
+# A city missing from the list prints as "? XXX"; add it there and it stops
+# being a mystery.
+EDGE_COUNTRIES = {
+    "United States": "IAD DFW ORD JFK EWR LGA LAX BUR SFO SJC SEA PDX DEN PHX MIA ATL "
+                     "BOS PHL IAH MCI MSP DTW CLT TPA MCO SLC LAS SAN STL IND CMH BNA "
+                     "AUS OMA PIT RIC HIO",
+    "Canada": "YUL YYZ YTO YVR YYC",
+    "Mexico": "MEX QRO",
+    "Brazil": "GRU GIG FOR",
+    "Argentina": "EZE",
+    "Chile": "SCL",
+    "Colombia": "BOG",
+    "Peru": "LIM",
+    "United Kingdom": "LHR LON LCY MAN",
+    "Ireland": "DUB",
+    "France": "CDG MRS",
+    "Netherlands": "AMS",
+    "Belgium": "BRU",
+    "Germany": "FRA DUS MUC HAM BER TXL",
+    "Switzerland": "ZRH GVA",
+    "Austria": "VIE",
+    "Italy": "MXP FCO PMO",
+    "Spain": "MAD BCN",
+    "Portugal": "LIS",
+    "Sweden": "ARN",
+    "Denmark": "CPH",
+    "Norway": "OSL",
+    "Finland": "HEL",
+    "Poland": "WAW",
+    "Czechia": "PRG",
+    "Hungary": "BUD",
+    "Romania": "OTP",
+    "Bulgaria": "SOF",
+    "Serbia": "BEG",
+    "Estonia": "TLL",
+    "Latvia": "RIX",
+    "Lithuania": "VNO",
+    "Iceland": "KEF",
+    "Turkey": "IST",
+    "Croatia": "ZAG",
+    "Greece": "ATH SKG",
+    "Israel": "TLV",
+    "United Arab Emirates": "DXB FJR",
+    "Saudi Arabia": "RUH JED",
+    "Qatar": "DOH",
+    "Bahrain": "BAH",
+    "Kuwait": "KWI",
+    "Oman": "MCT",
+    "South Africa": "CPT JNB",
+    "Nigeria": "LOS",
+    "Kenya": "NBO",
+    "Egypt": "CAI",
+    "India": "BOM DEL MAA BLR HYD CCU PNQ",
+    "Japan": "NRT HND KIX ITM",
+    "South Korea": "ICN SEL GMP",
+    "Hong Kong": "HKG",
+    "Taiwan": "TPE",
+    "Singapore": "SIN",
+    "Malaysia": "KUL",
+    "Thailand": "BKK",
+    "Vietnam": "SGN HAN",
+    "Philippines": "MNL",
+    "Indonesia": "CGK DPS",
+    "Australia": "SYD MEL PER BNE ADL",
+    "New Zealand": "AKL",
+}
+COUNTRY_OF = {city: name for name, cities in EDGE_COUNTRIES.items() for city in cities.split()}
 
 
 def parse_log(blob: bytes):
@@ -34,6 +134,41 @@ def parse_log(blob: bytes):
             fields = line.split()[1:]
         elif line and not line.startswith("#"):
             yield dict(zip(fields, line.split("\t")))
+
+
+def country(edge: str) -> str:
+    """Country around the CloudFront city that served the request ('CDG50-P1')."""
+    return COUNTRY_OF.get(edge[:3].upper(), f"? {edge[:3].upper()}")
+
+
+def split_visits(hits: list):
+    """Cut one visitor's requests, oldest first, into visits at every long silence."""
+    visit: list = []
+    for hit in hits:
+        if visit and hit[0] - visit[-1][0] > VISIT_GAP:
+            yield visit
+            visit = []
+        visit.append(hit)
+    if visit:
+        yield visit
+
+
+def how_long(seconds: float) -> str:
+    """Seconds as something readable: 8s, 3m 20s, 1h 05m."""
+    if seconds < 60:
+        return f"{int(seconds)}s"
+    minutes, secs = divmod(int(seconds), 60)
+    if minutes < 60:
+        return f"{minutes}m {secs:02d}s"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}h {minutes:02d}m"
+
+
+def length_bucket(seconds: float) -> str:
+    for limit, label in LENGTHS:
+        if limit is None or seconds < limit:
+            return label
+    return LENGTHS[-1][1]
 
 
 def main() -> None:
@@ -49,6 +184,7 @@ def main() -> None:
     visitors: dict[str, set] = defaultdict(set)
     pages: Counter = Counter()
     plays: Counter = Counter()
+    hits: dict[tuple, list] = defaultdict(list)
 
     paginator = s3.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=args.bucket, Prefix=args.prefix):
@@ -57,21 +193,82 @@ def main() -> None:
                 continue
             body = s3.get_object(Bucket=args.bucket, Key=obj["Key"])["Body"].read()
             for r in parse_log(body):
-                uri = r.get("cs-uri-stem", "")
                 ua = r.get("cs(User-Agent)", "").lower()
-                if not uri.endswith("/") or any(b in ua for b in BOTS) or r.get("sc-status") != "200":
-                    continue  # count HTML page views by humans only
-                day = r["date"]
-                visitors[day].add((r["c-ip"], ua))
-                pages[uri] += 1
-                if uri.startswith("/play/"):
-                    plays[uri] += 1
+                if not r.get("date") or not r.get("time") or any(b in ua for b in BOTS):
+                    continue
+                uri, status = r.get("cs-uri-stem", ""), r.get("sc-status")
+                key = (r.get("c-ip", ""), ua)
+                when = dt.datetime.strptime(f"{r['date']} {r['time']}", "%Y-%m-%d %H:%M:%S")
+                where = country(r.get("x-edge-location", ""))
+                if uri.endswith("/") and status == "200":
+                    visitors[r["date"]].add(key)  # an HTML page, handed to a person
+                    pages[uri] += 1
+                    if uri.startswith("/play/"):
+                        plays[uri] += 1
+                    hits[key].append((when, "page", uri, where))
+                elif uri.startswith(BROWSER_FILES) and status in ("200", "304", "404"):
+                    # 304: a browser being told its copy is still good. 404: the
+                    # /favicon.ico the games never declare. Both mean a browser.
+                    hits[key].append((when, "browser file", uri, where))
+
+    kinds: Counter = Counter()
+    countries: Counter = Counter()
+    buckets: Counter = Counter()
+    lengths: list[float] = []
+    opened: list[int] = []
+    for visitor_hits in hits.values():
+        for visit in split_visits(sorted(visitor_hits)):
+            seen = [h for h in visit if h[1] == "page"]
+            if not seen:
+                continue  # pictures with no page: a hotlink, not a visit
+            if any(h[1] == "browser file" for h in visit):
+                kind = "a browser"
+            elif all(h[2].startswith("/play/") for h in seen):
+                kind = "a game and nothing else"  # games ask for no files of ours
+            else:
+                kind = "the HTML alone"
+            kinds[kind] += 1
+            if kind != "a browser":
+                continue
+            seconds = (visit[-1][0] - visit[0][0]).total_seconds()
+            countries[seen[0][3]] += 1
+            buckets[length_bucket(seconds)] += 1
+            lengths.append(seconds)
+            opened.append(len(seen))
 
     print(f"Daily visitors, last {args.days} days")
     for day in sorted(visitors):
         print(f"  {day}  {len(visitors[day]):>5}")
     total = len(set().union(*visitors.values())) if visitors else 0
     print(f"  unique over period: {total}")
+
+    print("\nWere they people? (a browser asks for the style and the pictures too;")
+    print("something taking the HTML and nothing else is a machine)")
+    for kind in ("a browser", "the HTML alone", "a game and nothing else"):
+        n = kinds[kind]
+        share = f"{100 * n / sum(kinds.values()):.0f}%" if kinds else "0%"
+        print(f"  {n:>6}  {share:>4}  {kind}")
+
+    print("\nWhere they connected from, browser visits only (the CloudFront city")
+    print("that served them, so the country next door is always possible)")
+    for name, n in countries.most_common(12):
+        print(f"  {n:>6}  {name}")
+    rest = sum(n for _, n in countries.most_common()[12:])
+    if rest:
+        print(f"  {rest:>6}  other places")
+
+    print("\nHow long they stayed, browser visits only (first page to last; the")
+    print("time spent inside a game does not show up at all)")
+    for _, label in LENGTHS:
+        print(f"  {buckets[label]:>6}  {label}")
+    if lengths:
+        more = [s for s, n in zip(lengths, opened) if n > 1]
+        print(f"  half of them shorter than {how_long(statistics.median(lengths))}, half longer")
+        if more:
+            print(f"  counting only the {len(more)} who opened more than one page: "
+                  f"half shorter than {how_long(statistics.median(more))}")
+        print(f"  pages opened per visit: {sum(opened) / len(opened):.1f}")
+
     print("\nGame plays")
     for uri, n in plays.most_common():
         print(f"  {n:>6}  {uri}")

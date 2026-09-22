@@ -22,7 +22,10 @@ Le site est distribué par Amazon CloudFront et, comme n'importe quel serveur
 web, il écrit une ligne pour chaque fichier qu'il envoie : ce qui a été
 demandé, quand, votre adresse IP, et le nom que votre navigateur donne de
 lui-même. Je compte ces lignes pour voir à peu près combien de personnes sont
-passées et quels jeux elles ont ouverts. C'est la seule chose que j'en fais, et
+passées, quels jeux elles ont ouverts, combien de temps elles sont restées et
+de quelle partie du monde elles venaient — cette dernière d'après la ville
+depuis laquelle mon réseau de diffusion les a servies, ce qui n'est jamais
+qu'approximatif. C'est la seule chose que j'en fais, et
 elles sont supprimées automatiquement au bout d'environ treize mois. Il n'y a
 aucun script d'analyse sur ce site et aucun cookie de ma part.
 
