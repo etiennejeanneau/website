@@ -74,6 +74,9 @@ has its own section on the home page, under the games.
    and everything it loads beside it (`audio/`, pictures). Do not edit any of
    it; it is published as it is under `/watch/<slug>/`, and nothing is added to
    it (no share button).
+   The Full screen button on the story page enlarges the block with the class
+   `plate` (picture, play bar, credits). An animation without one still works:
+   the button then opens it alone, as it does on an iPhone.
 2. `content/en/<slug>.md`, front matter:
    ```yaml
    ---

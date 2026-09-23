@@ -17,8 +17,8 @@ h2 { font-size: 1.35rem; margin: 2em 0 .6em; }
 
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; max-width: 1040px; margin: 0 auto; padding: 18px 16px; }
 .brand { font-weight: 800; text-decoration: none; color: var(--fg); font-size: 1.15rem; }
-.top nav { display: flex; align-items: center; }
-.top nav a { margin-left: 18px; text-decoration: none; color: var(--muted); font-weight: 600; }
+.top nav { display: flex; flex-wrap: wrap; align-items: center; row-gap: 8px; }
+.top nav a { margin-left: 18px; white-space: nowrap; text-decoration: none; color: var(--muted); font-weight: 600; }
 .top nav a:hover { color: var(--fg); }
 
 /* Language menu: one small pill per language, the current one filled in. */
@@ -27,8 +27,8 @@ h2 { font-size: 1.35rem; margin: 2em 0 .6em; }
 .top nav .langs a.is-current { background: var(--fg); color: var(--bg); }
 /* Three links and the language pills have to fit a phone's width. */
 @media (max-width: 440px) {
-  .top nav a { margin-left: 12px; }
-  .langs { margin-left: 12px; }
+  .top nav a { margin-left: 10px; font-size: .95rem; }
+  .langs { margin-left: 10px; }
 }
 
 .hero { padding: 24px 0 8px; max-width: 680px; }
@@ -108,4 +108,7 @@ footer a { color: inherit; }
 .screen { container-type: inline-size; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,.22); }
 /* Close to the real height until the page measures it (see animation.html). */
 .screen iframe { display: block; width: 100%; height: calc(56.25cqw + 90px); border: 0; }
-.animation .hint { margin-bottom: 28px; }
+.screen-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 12px 0 28px; }
+.screen-tools .hint { flex: 1 1 280px; margin: 0; }
+.fs-button { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; font-size: .9rem; text-decoration: none; }
+.fs-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }

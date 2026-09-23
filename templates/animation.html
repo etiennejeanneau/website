@@ -29,8 +29,58 @@
   <div class="screen">
     <iframe id="screen" src="{{ page.watch_url }}" title="{{ t.watch_title.format(title=page.title) }}" allow="autoplay; fullscreen"></iframe>
   </div>
-  <p class="hint">{{ t.watch_hint }} <a href="{{ page.watch_url }}">{{ t.watch_full }}</a></p>
+  <div class="screen-tools">
+    {# A link to the animation alone until the script below knows this browser
+       can do real full screen (an iPhone cannot, for anything but a video). #}
+    <a class="fs-button" id="fullscreen" href="{{ page.watch_url }}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4"/></svg> {{ t.fullscreen }}</a>
+    <p class="hint">{{ t.watch_hint }}</p>
+  </div>
   <script>
+  // Full screen: the picture and its play bar, as big as the screen allows,
+  // on black. The animation's file is not changed: the few lines of layout it
+  // needs for that are added to the copy running in this frame only.
+  (function () {
+    var f = document.getElementById("screen");
+    var button = document.getElementById("fullscreen");
+    // Picture, play bar and credits, centred on black. The picture takes the
+    // largest 16:9 that leaves room for the bar and the credits under it; on a
+    // phone turned sideways the credits step aside (they stay on the page).
+    var FS = [":fullscreen", ":-webkit-full-screen"];
+    var FIT = FS.map(function (fs) {
+      var p = ".plate" + fs;
+      return p + "{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px;border:0}"
+        + p + "::after{display:none}"
+        + p + " .stage," + p + " .bar," + p + " .credits{flex:none;width:min(100%,calc((100vh - 110px) * 16 / 9))}"
+        + p + " .credits{padding:0;text-align:center}"
+        + "@media (max-height:500px){" + p + " .credits{display:none}"
+        + p + " .stage," + p + " .bar{width:min(100%,calc((100vh - 64px) * 16 / 9))}}";
+    }).join("");
+    function plate() {
+      try {
+        var doc = f.contentDocument;
+        if (!doc.fullscreenEnabled && !doc.webkitFullscreenEnabled) return null;
+        var el = doc.querySelector(".plate");
+        if (el && !doc.getElementById("ohlala-fit")) {
+          var style = doc.createElement("style");
+          style.id = "ohlala-fit";
+          style.textContent = FIT;
+          doc.head.appendChild(style);
+        }
+        return el;
+      } catch (e) { return null; }
+    }
+    button.addEventListener("click", function (e) {
+      var el = plate();
+      if (!el) return;              // no full screen here: the link opens the animation alone
+      e.preventDefault();
+      var go = el.requestFullscreen ? el.requestFullscreen() : el.webkitRequestFullscreen();
+      // On an Android phone, turn the picture sideways while it is full screen.
+      if (go && go.then) go.then(function () {
+        try { screen.orientation.lock("landscape").catch(function () {}); } catch (err) {}
+      }).catch(function () {});
+    });
+  })();
+
   // The frame takes the exact height of what it shows (a 16:9 picture plus its
   // play bar and credits), whatever the width. Same site, so it can look in.
   (function () {

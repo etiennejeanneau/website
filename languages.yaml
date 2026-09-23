@@ -46,7 +46,7 @@ en:
       hear is free to use or generated, and every source is credited.
   watch: Watch
   watch_title: Watch {title}
-  watch_full: Open it full screen
+  fullscreen: Full screen
   watch_hint: >-
     Sound on: the story is told out loud. On a phone, it is bigger with the
     phone turned sideways.
@@ -117,7 +117,7 @@ fr:
       droits ou généré, et chaque source est citée.
   watch: Regarder
   watch_title: Regarder {title}
-  watch_full: L'ouvrir en plein écran
+  fullscreen: Plein écran
   watch_hint: >-
     Avec le son : l'histoire est racontée à voix haute. Sur un téléphone,
     c'est plus grand en le tournant à l'horizontale.
