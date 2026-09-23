@@ -16,6 +16,14 @@ gardé par votre propre navigateur, sur votre propre appareil. Videz les
 données de navigation et il disparaît. Je ne le vois jamais, et personne
 d'autre non plus.
 
+## Les animations
+
+Les animations sont elles aussi des pages qui tournent dans votre navigateur,
+et ne disent à personne ce que vous y faites. Une seule chose vient d'ailleurs :
+les lettres façon livre ancien du *Lion et le Rat* sont servies par Google
+Fonts. L'ouvrir demande donc ces lettres aux serveurs de Google, qui voient
+votre adresse IP comme pour n'importe quel site utilisant ses polices.
+
 ## Le serveur
 
 Le site est distribué par Amazon CloudFront et, comme n'importe quel serveur

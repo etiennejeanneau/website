@@ -15,6 +15,14 @@ kind. Your best score is kept by your own browser, on your own device. Clear
 your browsing data and it is gone. I never see it, and neither does anyone
 else.
 
+## The animations
+
+The animations are pages that run in your browser too, and tell nobody what
+you do in them. One thing they do fetch from elsewhere: the old-book lettering
+of *Le Lion et le Rat* comes from Google Fonts, so opening it asks Google's
+servers for those letters, and Google sees your IP address as it would for any
+site using its fonts.
+
 ## The server
 
 The site is delivered by Amazon CloudFront, and like any web server it writes

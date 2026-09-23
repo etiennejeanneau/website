@@ -25,7 +25,8 @@ h2 { font-size: 1.35rem; margin: 2em 0 .6em; }
 .langs { display: inline-flex; margin-left: 16px; padding: 2px; gap: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); }
 .top nav .langs a { margin: 0; padding: 3px 9px; border-radius: 999px; font-size: .8rem; font-weight: 700; letter-spacing: .02em; }
 .top nav .langs a.is-current { background: var(--fg); color: var(--bg); }
-@media (max-width: 380px) {
+/* Three links and the language pills have to fit a phone's width. */
+@media (max-width: 440px) {
   .top nav a { margin-left: 12px; }
   .langs { margin-left: 12px; }
 }
@@ -96,3 +97,15 @@ h2 { font-size: 1.35rem; margin: 2em 0 .6em; }
 
 footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; padding: 20px 16px 40px; text-align: center; }
 footer a { color: inherit; }
+
+/* Animations: a 16:9 card on the home page, and on the story page the
+   animation itself, full width, in a black frame. */
+.section-intro { max-width: 680px; color: var(--muted); margin-bottom: 20px; }
+.section-intro p { margin: 0 0 .7em; }
+.grid-wide { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.card.wide.has-shot .card-play { aspect-ratio: 16 / 9; }
+.card.wide .card-shot { object-position: 50% 50%; }
+.screen { container-type: inline-size; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,.22); }
+/* Close to the real height until the page measures it (see animation.html). */
+.screen iframe { display: block; width: 100%; height: calc(56.25cqw + 90px); border: 0; }
+.animation .hint { margin-bottom: 28px; }

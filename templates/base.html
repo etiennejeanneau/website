@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{% set page_title = page.title ~ ' · ' ~ site.title if page else site.title ~ ' · ' ~ t.tagline %}
+{# seo_title: a longer name some pages give search engines and shares. #}
+{% set share_title = (page.meta.seo_title or page.title) if page else site.title %}
+{% set page_title = share_title ~ ' · ' ~ site.title if page else site.title ~ ' · ' ~ t.tagline %}
 {% set page_desc = page.tagline if page and page.tagline else t.description | trim %}
 {% set page_url = site.url ~ (page.url if page else home) %}
 {% set og_image = site.url ~ (page.og_path if page else og_default) %}
@@ -12,7 +14,7 @@
 <link rel="canonical" href="{{ page_url }}">
 <meta property="og:type" content="{{ 'article' if page else 'website' }}">
 <meta property="og:site_name" content="{{ site.title }}">
-<meta property="og:title" content="{{ page.title if page else site.title }}">
+<meta property="og:title" content="{{ share_title }}">
 <meta property="og:description" content="{{ page_desc }}">
 <meta property="og:url" content="{{ page_url }}">
 <meta property="og:image" content="{{ og_image }}">
@@ -75,6 +77,7 @@
   <a class="brand" href="{{ home }}">{{ site.title }}</a>
   <nav>
     <a href="{{ home }}#games">{{ t.nav_games }}</a>
+    {% if animations %}<a href="{{ home }}#animations">{{ t.nav_animations }}</a>{% endif %}
     <a href="{{ prefix }}/about/">{{ t.nav_about }}</a>
     <span class="langs" role="group" aria-label="{{ t.language_menu }}">
     {% for a in alternates(page) %}

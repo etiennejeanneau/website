@@ -43,12 +43,19 @@ jobs:
           # and a public repo means public logs. The ARN carries the account id.
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1
-      # Long cache for hashed-free assets is not worth the complexity at this
-      # size; everything is 5 min at the edge and invalidated on deploy.
+      # Pages, games and pictures: 5 min at the edge, invalidated on deploy,
+      # so a fix shows up at once. Sound files are big and never retouched in
+      # place, so browsers keep them for 30 days: to change a sound, give the
+      # new file a new name (a browser that has the old one would keep it).
+      # Each pass only deletes the files it covers.
       - name: Sync to S3
         run: |
           aws s3 sync dist/ "s3://${{ vars.SITE_BUCKET }}/" --delete \
+            --exclude "*.mp3" \
             --cache-control "public, max-age=300"
+          aws s3 sync dist/ "s3://${{ vars.SITE_BUCKET }}/" --delete \
+            --exclude "*" --include "*.mp3" \
+            --cache-control "public, max-age=2592000"
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \

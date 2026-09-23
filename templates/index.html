@@ -36,4 +36,35 @@
   {% endfor %}
   </div>
 </section>
+
+{% if animations %}
+<section id="animations">
+  <h2>{{ t.animations_heading }}</h2>
+  <div class="section-intro">
+  {% for para in t.animations_intro %}
+    <p>{{ para }}</p>
+  {% endfor %}
+  </div>
+  <div class="grid grid-wide">
+  {% for a in animations %}
+    <article class="card wide{{ ' has-shot' if a.picture_url }}" style="--accent: {{ site.og_colors.get(a.slug, site.og_colors.default) }}">
+      {# The card opens the story page, where the animation plays at the top:
+         unlike a game it is not full screen, and the page keeps the credits. #}
+      <a class="card-play" href="{{ a.url }}" aria-label="{{ t.watch_title.format(title=a.title) }}">
+        {% if a.picture_url %}
+        <img class="card-shot" src="{{ a.picture_url }}" alt="" decoding="async" loading="lazy">
+        {% endif %}
+        <span class="card-title">{{ a.title }}</span>
+        <span class="card-cta"><span aria-hidden="true">▶</span> {{ t.watch }}</span>
+      </a>
+      <div class="card-body">
+        <p>{{ a.tagline }}</p>
+        {% if a.seconds %}<p class="stats"><span>{{ a.seconds | runtime }}</span></p>{% endif %}
+        <a class="story-link" href="{{ a.url }}#story">{{ t.animation_story_link }}</a>
+      </div>
+    </article>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
 {% endblock %}

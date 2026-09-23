@@ -65,6 +65,41 @@ If the game keeps a best score in the browser, add a line for the slug under
 game then says that score. A game missing from that list still gets the
 button; it just shares the game without a number in it.
 
+## Publishing an animation
+
+Not everything is a game. An animation (a short story to watch and listen to)
+has its own section on the home page, under the games.
+
+1. Copy the whole delivered folder to `animations/<slug>/`: its `index.html`
+   and everything it loads beside it (`audio/`, pictures). Do not edit any of
+   it; it is published as it is under `/watch/<slug>/`, and nothing is added to
+   it (no share button).
+2. `content/en/<slug>.md`, front matter:
+   ```yaml
+   ---
+   title: Le Lion et le Rat
+   slug: <slug>
+   date: YYYY-MM-DD
+   tagline: One sentence. Doubles as the meta description.
+   seo_title: A longer title for search engines and shares (optional)
+   animation: animations/<slug>/index.html
+   picture: vignette.jpg        # a 16:9 picture in that folder: card + share image
+   duration: "2:34"             # minutes:seconds
+   narration: fr                # the language it is told in
+   based_on: {title: ..., author: ..., year: ...}   # the text it tells, if any
+   tags: [animation]
+   ---
+   ```
+   `iterations`, `prompts` and `session` work as for games, but only when the
+   real numbers are known.
+3. `content/fr/<slug>.md`: `title`, `slug`, `tagline`, `seo_title`. The rest is
+   inherited. Keep the credits (voice, sounds, text) at the end of both pages;
+   a free ElevenLabs voice must credit ElevenLabs.
+4. A colour under `og_colors` in `site.yaml`. No `scripts/shots.py`: the
+   picture comes with the folder.
+5. `python build.py`, commit, push. Sound files (`.mp3`) are cached 30 days by
+   browsers: to change one, give it a new file name.
+
 Use `draft: true` in the English front matter to build a page without listing
 it (`python build.py --drafts` to include it locally); the French version
 inherits the draft flag.
@@ -95,9 +130,10 @@ languages.yaml      the languages, and every word outside the pages
 content/en/*.md     one file per page; a `game:` key makes it a game page
 content/fr/*.md     the same pages in French, same file names
 games/<slug>/       the playable files, copied untouched to /play/<slug>/
+animations/<slug>/  an animation's whole folder, copied untouched to /watch/<slug>/
 shots/<slug>.png    a picture of each game, taken by scripts/shots.py and
                     committed like the games; the build only copies it
-templates/*.html    Jinja2: base, index, game, page, 404, feedback, share
+templates/*.html    Jinja2: base, index, game, animation, page, 404, feedback, share
                     feedback.html is the block base.html puts at the bottom of
                     every page: a link to the Tally form, built only when
                     site.yaml has a tally_form_id. See the README to set it up.
@@ -112,9 +148,10 @@ scripts/stats.py    visitor counts from CloudFront logs (no cookies)
 ```
 
 URLs: `/` home, `/games/<slug>/` story page, `/play/<slug>/` the game itself,
+`/animations/<slug>/` an animation's story page, `/watch/<slug>/` the animation,
 `/about/`, `/sitemap.xml`, `/feed.xml`, `/llms.txt`, `/og/<slug>.png`,
 `/shots/<slug>.png`, and the same set under `/fr/` (except the games, the
-pictures and the sitemap, which are shared).
+animations, the pictures and the sitemap, which are shared).
 
 ## The share button
 
