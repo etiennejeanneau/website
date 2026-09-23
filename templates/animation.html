@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block head %}
+{# The animation as a video, and the page as the story of how it was made.
+   isBasedOn: the text it tells, when the front matter names one. #}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"VideoObject","name":{{ page.title | tojson }},"description":{{ page.tagline | tojson }},"embedUrl":"{{ site.url }}{{ page.watch_url }}","url":"{{ site.url }}{{ page.url }}",{% if page.picture_url %}"thumbnailUrl":"{{ site.url }}{{ page.picture_url }}",{% endif %}"uploadDate":"{{ page.date | isodate }}",{% if page.seconds %}"duration":"PT{{ page.seconds // 60 }}M{{ page.seconds % 60 }}S",{% endif %}{% if page.meta.narration %}"inLanguage":"{{ page.meta.narration }}",{% endif %}"isAccessibleForFree":true,"creator":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"}{% set src = page.meta.based_on %}{% if src %},"isBasedOn":{"@type":"CreativeWork","name":{{ src.title | tojson }},"author":{"@type":"Person","name":{{ src.author | tojson }}},"datePublished":"{{ src.year }}"}{% endif %}},
+ {"@type":"Article","headline":{{ t.story_headline.format(title=page.title) | tojson }},"url":"{{ site.url }}{{ page.url }}","inLanguage":"{{ lang }}","datePublished":"{{ page.date | isodate }}","author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"},"description":{{ page.tagline | tojson }},"image":"{{ site.url }}{{ page.og_path }}"}
+]}
+</script>
+{% endblock %}
+{% block content %}
+<article class="animation" style="--accent: {{ site.og_colors.get(page.slug, site.og_colors.default) }}">
+  <header class="game-head">
+    <h1>{{ page.title }}</h1>
+    <p class="lead">{{ page.tagline }}</p>
+    <p class="stats">
+      {% if page.seconds %}<span><b>{{ page.seconds | runtime }}</b></span>{% endif %}
+      {% if page.meta.iterations %}<span><b>{{ page.meta.iterations }}</b> {{ t.iterations }}</span>{% endif %}
+      {% if page.meta.prompts %}<span><b>{{ page.meta.prompts }}</b> {{ t.prompts }}</span>{% endif %}
+      {% if page.meta.session %}<span>{{ page.meta.session }}</span>{% endif %}
+      <span>{{ page.date | nicedate }}</span>
+    </p>
+  </header>
+
+  {# The animation plays right here, at every screen size: it is 16:9 and
+     fits a phone held either way. Its sound starts only when the visitor
+     taps its own button, which is why the frame is allowed to autoplay. #}
+  <div class="screen">
+    <iframe id="screen" src="{{ page.watch_url }}" title="{{ t.watch_title.format(title=page.title) }}" allow="autoplay; fullscreen"></iframe>
+  </div>
+  <p class="hint">{{ t.watch_hint }} <a href="{{ page.watch_url }}">{{ t.watch_full }}</a></p>
+  <script>
+  // The frame takes the exact height of what it shows (a 16:9 picture plus its
+  // play bar and credits), whatever the width. Same site, so it can look in.
+  (function () {
+    var f = document.getElementById("screen");
+    function fit() {
+      try { f.style.height = f.contentDocument.body.offsetHeight + "px"; } catch (e) {}
+    }
+    f.addEventListener("load", function () {
+      fit();
+      try { new f.contentWindow.ResizeObserver(fit).observe(f.contentDocument.body); }
+      catch (e) { window.addEventListener("resize", fit); }
+    });
+  })();
+  </script>
+
+  <div class="prose" id="story">
+    {{ page.body_html | safe }}
+  </div>
+
+  <nav class="more">
+    <h2>{{ t.more_heading }}</h2>
+    <ul>
+    {% for a in animations if a.slug != page.slug %}
+      <li><a href="{{ a.url }}">{{ a.title }}</a> — {{ a.tagline }}</li>
+    {% endfor %}
+    {% for g in games %}
+      <li><a href="{{ g.url }}">{{ g.title }}</a> — {{ g.tagline }}</li>
+    {% endfor %}
+    </ul>
+  </nav>
+</article>
+{% endblock %}

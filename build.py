@@ -15,6 +15,10 @@ Pipeline
                  /fr/games/<slug>/      the same story in French
                  /play/<slug>/          the game file, plus the share button
                                         (one copy: games have no language)
+                 /animations/<slug>/    story page for one animation
+                 /fr/animations/<slug>/ the same story in French
+                 /watch/<slug>/         the animation's folder, copied as it is
+                                        (sounds and pictures included)
                  /<slug>/, /fr/<slug>/  any other content page (about, ...)
                  /404.html              one page, all languages on it
 4. extras()    sitemap.xml, robots.txt, ads.txt, llms.txt, feed.xml,
@@ -28,6 +32,18 @@ scripts/shots.py and committed like the game itself. The build never opens a
 browser: it copies the file and points the card, the story page and the share
 image at it. No file for a slug is not an error — that game falls back to the
 plain coloured card, and the build says so on the console.
+
+Animations
+----------
+Not everything here is a game. An animation is a folder, animations/<slug>/,
+with its index.html and whatever it loads beside it (audio/, pictures). The
+whole folder is published as it is under /watch/<slug>/, so the relative paths
+inside it keep working; nothing is added to it, not even the share button,
+which would sit on its controls. Its story page embeds it at 16:9 and lists it
+in its own section on the home page, under the games.
+
+Its card and share image are a picture that comes with the folder (`picture`
+in the front matter, already 16:9), not a screenshot taken by scripts/shots.py.
 
 Share button
 ------------
@@ -70,6 +86,15 @@ date         YYYY-MM-DD; games are listed newest first
 tagline      one line under the title, also the meta description
 game         path to the playable file, e.g. games/aisle-be-back/index.html
              -> its presence makes the page a *game* page
+animation    path to the animation, e.g. animations/le-lion-et-le-rat/index.html
+             -> its presence makes the page an *animation* page
+picture      animation only: the 16:9 picture in its folder, for the card and
+             the share image, e.g. vignette-clemence.jpg
+duration     animation only: how long it runs, minutes:seconds, e.g. "2:34"
+narration    animation only: the language it is told in, e.g. fr
+based_on     animation only: the text it tells, {title, author, year}
+seo_title    optional: a longer title for search engines and shares; the page
+             itself keeps `title`
 iterations   int, shown as a stat on the page
 prompts      int, shown as a stat on the page
 session      free text, when it was built
@@ -104,7 +129,8 @@ FRONT_MATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.S)
 
 # Front matter keys a translation inherits from the default language when it
 # does not set them itself. Only the words are expected in a translated file.
-INHERITED = ("game", "date", "iterations", "prompts", "tags", "draft", "session")
+INHERITED = ("game", "animation", "picture", "duration", "narration", "based_on",
+             "date", "iterations", "prompts", "tags", "draft", "session")
 
 # What templates/share.html says, in every language. A language that has not
 # translated them falls back to the default language's words.
@@ -146,6 +172,10 @@ class Page:
         return bool(self.meta.get("game"))
 
     @property
+    def is_animation(self) -> bool:
+        return bool(self.meta.get("animation"))
+
+    @property
     def draft(self) -> bool:
         return bool(self.meta.get("draft"))
 
@@ -159,12 +189,42 @@ class Page:
     @property
     def url(self) -> str:
         p = self.lang.prefix
-        return f"{p}/games/{self.slug}/" if self.is_game else f"{p}/{self.slug}/"
+        if self.is_game:
+            return f"{p}/games/{self.slug}/"
+        if self.is_animation:
+            return f"{p}/animations/{self.slug}/"
+        return f"{p}/{self.slug}/"
 
     @property
     def play_url(self) -> str:
         """The game itself. One copy for every language: it has no words of ours."""
         return f"/play/{self.slug}/"
+
+    @property
+    def watch_url(self) -> str:
+        """The animation itself, with its sounds beside it. One copy, like the games."""
+        return f"/watch/{self.slug}/"
+
+    @property
+    def animation_dir(self) -> Path:
+        return (ROOT / self.meta["animation"]).parent
+
+    @property
+    def picture_file(self) -> Path | None:
+        """The animation's own 16:9 picture, if its front matter names one."""
+        name = self.meta.get("picture")
+        f = self.animation_dir / str(name) if self.is_animation and name else None
+        return f if f and f.is_file() else None
+
+    @property
+    def picture_url(self) -> str | None:
+        return f"{self.watch_url}{self.meta['picture']}" if self.picture_file else None
+
+    @property
+    def seconds(self) -> int:
+        """duration "2:34" -> 154. Zero when there is none."""
+        m = re.fullmatch(r"(\d+):(\d{2})", str(self.meta.get("duration") or ""))
+        return int(m.group(1)) * 60 + int(m.group(2)) if m else 0
 
     @property
     def shot_file(self) -> Path | None:
@@ -179,7 +239,13 @@ class Page:
 
     @property
     def og_path(self) -> str:
-        """Share image, one per language because the tagline is on it."""
+        """Share image, one per language because the tagline is on it.
+
+        An animation shares its own picture instead: it already is a 16:9
+        image made for that, with nothing on it to translate.
+        """
+        if self.picture_url:
+            return self.picture_url
         folder = "og" if self.lang.is_default else f"og/{self.lang.key}"
         return f"/{folder}/{self.slug}.png"
 
@@ -215,8 +281,13 @@ class Site:
         pages = (p for p in self.pages if p.is_game and p.lang is lang)
         return sorted(pages, key=lambda p: p.date, reverse=True)
 
+    def animations(self, lang: Lang) -> list[Page]:
+        pages = (p for p in self.pages if p.is_animation and p.lang is lang)
+        return sorted(pages, key=lambda p: p.date, reverse=True)
+
     def others(self, lang: Lang) -> list[Page]:
-        return [p for p in self.pages if not p.is_game and p.lang is lang]
+        return [p for p in self.pages
+                if not p.is_game and not p.is_animation and p.lang is lang]
 
     @property
     def public(self) -> list[Page]:
@@ -324,6 +395,20 @@ def validate(site: Site) -> None:
                 sys.exit(f"{p.source}: game file not found: {p.meta['game']}")
             if not p.meta.get("date"):
                 sys.exit(f"{p.source}: game pages need a 'date'")
+        if p.is_game and p.is_animation:
+            sys.exit(f"{p.source}: a page is a game or an animation, not both")
+        if p.is_animation:
+            anim_file = ROOT / p.meta["animation"]
+            if not anim_file.is_file():
+                sys.exit(f"{p.source}: animation file not found: {p.meta['animation']}")
+            if anim_file.parent.name != p.slug:
+                sys.exit(f"{p.source}: the animation should sit in animations/{p.slug}/")
+            if not p.meta.get("date"):
+                sys.exit(f"{p.source}: animation pages need a 'date'")
+            if p.meta.get("picture") and not p.picture_file:
+                sys.exit(f"{p.source}: picture not found in {p.meta['animation']}'s folder: {p.meta['picture']}")
+            if p.meta.get("duration") and not p.seconds:
+                sys.exit(f"{p.source}: duration should look like \"2:34\", got '{p.meta['duration']}'")
 
     # Missing translations are not an error: the language menu falls back to
     # the home page of that language. Say it out loud so it is not forgotten.
@@ -341,6 +426,10 @@ def validate(site: Site) -> None:
                   if p.is_game and p.lang is site.default and not p.shot_file)
     if bare:
         print(f"note: no screenshot for {', '.join(bare)} (python scripts/shots.py)")
+    bare = sorted(p.slug for p in site.pages
+                  if p.is_animation and p.lang is site.default and not p.picture_file)
+    if bare:
+        print(f"note: no picture for the animation {', '.join(bare)} ('picture' in its front matter)")
 
     # The share button needs its words, and needs to know which game it is on.
     missing_words = [k for k in SHARE_WORDS if not site.default.strings.get(k)]
@@ -402,11 +491,13 @@ def make_env(site: Site, lang: Lang) -> Environment:
     env.globals["home"] = lang.home
     env.globals["og_default"] = "/og/default.png" if lang.is_default else f"/og/{lang.key}/default.png"
     env.globals["games"] = [g for g in site.games(lang) if not g.draft]
+    env.globals["animations"] = [a for a in site.animations(lang) if not a.draft]
     env.globals["languages"] = site.langs
     env.globals["alternates"] = alternates
     env.globals["now"] = dt.datetime.now(dt.timezone.utc)
     env.filters["isodate"] = lambda d: d.isoformat()
     env.filters["nicedate"] = lambda d: nicedate(d, lang.key)
+    env.filters["runtime"] = lambda s: lang.strings["runtime"].format(m=s // 60, s=f"{s % 60:02d}")
     return env
 
 
@@ -464,7 +555,8 @@ def render(site: Site, out: Path) -> None:
         for p in site.pages:
             if p.lang is not lang:
                 continue
-            tpl = env.get_template("game.html" if p.is_game else "page.html")
+            name = "game" if p.is_game else "animation" if p.is_animation else "page"
+            tpl = env.get_template(f"{name}.html")
             write(out, f"{p.url}index.html", tpl.render(page=p))
 
     # One copy of each game, shared by every language, with the share button
@@ -475,6 +567,12 @@ def render(site: Site, out: Path) -> None:
             dst = out / p.play_url.lstrip("/") / "index.html"
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_text(playable(site, p, share_env), encoding="utf-8")
+
+    # One copy of each animation, the whole folder exactly as it was made: its
+    # sounds and pictures are loaded from beside it.
+    for p in site.pages:
+        if p.is_animation and p.lang is site.default:
+            shutil.copytree(p.animation_dir, out / p.watch_url.lstrip("/"), dirs_exist_ok=True)
 
     # One 404 for the whole site: CloudFront serves the same file whatever the
     # address was, so the page says it in every language.
@@ -488,6 +586,7 @@ def sitemap(site: Site, out: Path) -> None:
     urls = [l.home for l in site.langs]
     urls += [p.url for p in site.public]
     urls += [p.play_url for p in site.public if p.is_game and p.lang is site.default]
+    urls += [p.watch_url for p in site.public if p.is_animation and p.lang is site.default]
     body = "\n".join(f"  <url><loc>{base}{u}</loc></url>" for u in urls)
     write(out, "sitemap.xml",
           '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -532,6 +631,11 @@ def llms_txt(site: Site, out: Path) -> None:
                 stats.append(f"{g.meta['prompts']} {s['prompts']}")
             stat = f" ({', '.join(stats)})" if stats else ""
             lines.append(f"- [{g.title}]({base}{g.url}): {g.tagline}{stat} {s['play']}: {base}{g.play_url}")
+        shown = [a for a in site.animations(lang) if not a.draft]
+        if shown:
+            lines += ["", f"## {s['animations_heading']}", ""]
+        for a in shown:
+            lines.append(f"- [{a.title}]({base}{a.url}): {a.tagline} {s['watch']}: {base}{a.watch_url}")
         lines += ["", "## Pages", ""]
         for p in site.others(lang):
             if not p.draft:
@@ -543,7 +647,8 @@ def feed(site: Site, out: Path) -> None:
     base = site.config["url"].rstrip("/")
     for lang in site.langs:
         items = []
-        for g in site.games(lang):
+        stories = sorted(site.games(lang) + site.animations(lang), key=lambda p: p.date, reverse=True)
+        for g in stories:
             if g.draft:
                 continue
             pub = dt.datetime.combine(g.date, dt.time(12, 0), tzinfo=dt.timezone.utc)
@@ -582,7 +687,8 @@ def og_images(site: Site, out: Path) -> None:
         return ImageFont.load_default()
 
     colors = site.config.get("og_colors", {})
-    targets = [(p.og_path, p.slug, p.title, p.tagline, p.shot_file) for p in site.public]
+    targets = [(p.og_path, p.slug, p.title, p.tagline, p.shot_file)
+               for p in site.public if not p.picture_file]
     for lang in site.langs:
         folder = "og" if lang.is_default else f"og/{lang.key}"
         targets.append((f"/{folder}/default.png", "default",
@@ -695,8 +801,9 @@ def main() -> None:
     copy_shots(out)
 
     n_games = sum(1 for p in site.pages if p.is_game and p.lang is site.default)
+    n_anims = sum(1 for p in site.pages if p.is_animation and p.lang is site.default)
     langs = ", ".join(l.key for l in site.langs)
-    print(f"built {len(site.pages)} pages ({n_games} games, {langs}) -> {out}")
+    print(f"built {len(site.pages)} pages ({n_games} games, {n_anims} animations, {langs}) -> {out}")
 
 
 if __name__ == "__main__":

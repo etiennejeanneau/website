@@ -18,6 +18,12 @@ See [CLAUDE.md](CLAUDE.md): drop the game in `games/<slug>/`, write
 `content/en/<slug>.md` and `content/fr/<slug>.md`, take its picture, push to
 `main`.
 
+## Adding an animation
+
+Also in [CLAUDE.md](CLAUDE.md): drop the delivered folder in
+`animations/<slug>/`, write the two story pages, push. The animation gets its
+own section on the home page, under the games.
+
 ## Screenshots of the games
 
 The card for each game on the home page is a real picture of that game, and so

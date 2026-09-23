@@ -37,6 +37,7 @@ og_colors:
   whack-a-president: "#166534"
   arrr-you-lost: "#0f3f62"
   waza-kotoba: "#2b4570"
+  le-lion-et-le-rat: "#3b2a1a"
 
 # Where each game keeps the player's best score, so the share button in the
 # corner of the game can say it (templates/share.html). Every game stores it
