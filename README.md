@@ -165,9 +165,21 @@ Three of those numbers lie a little, in ways worth knowing:
   trace at all. Treat it as a floor.
 - **Was it a person** is decided by whether the visitor also asked for the
   style sheet and the pictures, the way a browser does on its own. Something
-  taking the HTML and nothing else is a machine whatever it calls itself. A
-  visitor who lands straight on a game is counted separately, because the
-  games ask for no files of ours and so leave nothing to judge on.
+  taking the HTML and nothing else is a machine whatever it calls itself. Two
+  groups are counted apart rather than accused: a visitor who lands straight on
+  a game (the games ask for no files of ours, so there is nothing to judge on)
+  and one that took only the share picture, which is a chat app drawing the
+  card under a link somebody sent — good news, not a scraper.
+
+```sh
+python scripts/stats.py --bucket ohlala-cloud-logs --days 7 --agents
+```
+
+adds the names the visitors gave for themselves, listed under each of those
+groups. The name is a claim and a scraper can type anything it likes, so read
+it next to what the visitor actually asked for, not instead of it. It is the
+list to look at when deciding whether a name is worth adding to the handful the
+script throws out on sight, at the top of the file.
 
 ## Ads and feedback
 
