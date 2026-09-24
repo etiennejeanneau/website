@@ -54,9 +54,12 @@ BOTS = ("bot", "crawl", "spider", "slurp", "facebookexternalhit", "preview", "mo
 VISIT_GAP = dt.timedelta(minutes=30)
 
 # The files a browser fetches on its own, with nobody clicking anything: the
-# style sheet, the icon, the pictures of the games on the page. Asking for none
-# of them, all visit long, is what gives a scraper away.
-BROWSER_FILES = ("/static/", "/shots/", "/favicon.ico")
+# style sheet, the icon, the pictures of the games, and the pictures and sounds
+# an animation is made of. Asking for none of them, all visit long, is what
+# gives a scraper away. "/watch/" catches the animation's own files only: the
+# page it sits on, /watch/<slug>/, ends in a slash and is counted above as a
+# page like any other.
+BROWSER_FILES = ("/static/", "/shots/", "/favicon.ico", "/watch/")
 
 # The share picture, named in the page head and fetched by nothing else. A
 # browser never asks for it; WhatsApp, Slack, Discord and the rest ask for it
@@ -200,6 +203,7 @@ def main() -> None:
     visitors: dict[str, set] = defaultdict(set)
     pages: Counter = Counter()
     plays: Counter = Counter()
+    watched: Counter = Counter()
     hits: dict[tuple, list] = defaultdict(list)
     agents: dict[tuple, str] = {}
 
@@ -222,6 +226,8 @@ def main() -> None:
                     pages[uri] += 1
                     if uri.startswith("/play/"):
                         plays[uri] += 1
+                    elif uri.startswith("/watch/"):
+                        watched[uri] += 1
                     hits[key].append((when, "page", uri, where))
                 elif uri.startswith(BROWSER_FILES) and status in ("200", "304", "404"):
                     # 304: a browser being told its copy is still good. 404: the
@@ -311,6 +317,11 @@ def main() -> None:
     print("\nGame plays")
     for uri, n in plays.most_common():
         print(f"  {n:>6}  {uri}")
+    if watched:
+        print("\nAnimations opened (how much of one was actually watched is, like")
+        print("time spent in a game, invisible from here)")
+        for uri, n in watched.most_common():
+            print(f"  {n:>6}  {uri}")
     if args.pages:
         print("\nTop pages")
         for uri, n in pages.most_common(20):
