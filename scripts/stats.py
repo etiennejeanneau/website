@@ -48,7 +48,12 @@ from collections import Counter, defaultdict
 
 import boto3
 
-BOTS = ("bot", "crawl", "spider", "slurp", "facebookexternalhit", "preview", "monitor")
+# Names that are never a person. Some say so plainly; the rest are tools and
+# scanners that have no reason to pretend. A forged name is not caught here and
+# does not need to be: what a visitor asked for gives it away further down.
+BOTS = ("bot", "crawl", "spider", "slurp", "facebookexternalhit", "preview", "monitor",
+        "curl/", "wget", "python-requests", "go-http-client", "okhttp", "headless",
+        "googleother", "google-read-aloud", "paloaltonetworks", "probe", "scanner")
 
 # A new visit starts after this much silence from the same visitor.
 VISIT_GAP = dt.timedelta(minutes=30)
@@ -241,6 +246,7 @@ def main() -> None:
 
     kinds: Counter = Counter()
     who: dict[str, Counter] = defaultdict(Counter)
+    browsers: dict[str, set] = defaultdict(set)
     countries: Counter = Counter()
     buckets: Counter = Counter()
     lengths: list[float] = []
@@ -260,6 +266,8 @@ def main() -> None:
                 kind = "the HTML alone"
             kinds[kind] += 1
             who[kind][agents[key] or "(no name given)"] += 1
+            if kind == "a browser":
+                browsers[visit[0][0].strftime("%Y-%m-%d")].add(key)
             if kind != "a browser":
                 continue
             seconds = (visit[-1][0] - visit[0][0]).total_seconds()
@@ -268,11 +276,13 @@ def main() -> None:
             lengths.append(seconds)
             opened.append(len(seen))
 
-    print(f"Daily visitors, last {args.days} days")
+    print(f"Daily visitors, last {args.days} days. The second number is the one to")
+    print("watch: those that were real browsers, by the test below.")
     for day in sorted(visitors):
-        print(f"  {day}  {len(visitors[day]):>5}")
+        print(f"  {day}  {len(visitors[day]):>5}  {len(browsers[day]):>5}")
     total = len(set().union(*visitors.values())) if visitors else 0
-    print(f"  unique over period: {total}")
+    real = len(set().union(*browsers.values())) if browsers else 0
+    print(f"  unique over period: {total}, of them {real} a browser")
 
     print("\nWere they people? (a browser asks for the style and the pictures too;")
     print("something taking the HTML and nothing else is a machine)")
