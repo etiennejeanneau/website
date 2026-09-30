@@ -2,8 +2,8 @@
 {% block head %}
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
- {"@type":"VideoGame","name":"{{ page.title }}","url":"{{ site.url }}{{ page.play_url }}","description":"{{ page.tagline }}","genre":"{{ page.meta.tags | join(', ') }}","gamePlatform":["Web browser","Mobile"],"applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"},"datePublished":"{{ page.date | isodate }}"},
- {"@type":"Article","headline":"{{ t.story_headline.format(title=page.title) }}","url":"{{ site.url }}{{ page.url }}","inLanguage":"{{ lang }}","datePublished":"{{ page.date | isodate }}","author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"},"description":"{{ page.tagline }}","image":"{{ site.url }}{{ page.og_path }}"}
+ {"@type":"VideoGame","name":"{{ page.title }}","url":"{{ site.url }}{{ page.play_url }}","description":{{ (page.meta.description or page.tagline) | tojson }},"genre":"{{ page.meta.tags | join(', ') }}","gamePlatform":["Web browser","Mobile"],"applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"},"datePublished":"{{ page.date | isodate }}"},
+ {"@type":"Article","headline":"{{ t.story_headline.format(title=page.title) }}","url":"{{ site.url }}{{ page.url }}","inLanguage":"{{ lang }}","datePublished":"{{ page.date | isodate }}","author":{"@type":"Person","name":"{{ site.author.name }}","url":"{{ site.author.url }}"},"description":{{ (page.meta.description or page.tagline) | tojson }},"image":"{{ site.url }}{{ page.og_path }}"}
 ]}
 </script>
 {% endblock %}

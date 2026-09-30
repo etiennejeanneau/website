@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>America's Pride</title>
+<meta name="description" content="America's Pride: a free parody game about Donald Trump renaming random things for his ego. You are President Trumpet. Stamp APPROVED or DENIED on naming proposals like Gulf of America or Super Intelligence.">
+<meta name="theme-color" content="#0e1a33">
+<style>html{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Black+Ops+One&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* Layout: one-screen portrait game. HUD strip, aide bubble, desk canvas, two stamp buttons; title/end overlays on top. Single deliberate "night in the Oval Office" look. */
+:root{
+  --navy:#0e1a33; --navy-2:#18294c; --navy-3:#22375f;
+  --red:#b8262f; --red-2:#8a1a22;
+  --green:#2e7a49; --green-2:#1f5733;
+  --gold:#d8ad4a; --gold-dim:#6d5a2e;
+  --cream:#f5eedb; --muted:#a3b2cf;
+  --f-display:"Alfa Slab One", Rockwell, Georgia, serif;
+  --f-stamp:"Black Ops One", Impact, "Arial Black", sans-serif;
+  --f-type:"Courier Prime", "Courier New", Courier, monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--navy);color:var(--cream);font-family:var(--f-type);overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#app{position:relative;height:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column}
+
+/* HUD */
+.hud{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:10px 16px 6px}
+.hud .lbl{font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.hud .val{font-family:var(--f-display);font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
+.score-wrap{display:flex;flex-direction:column}
+.combo{font-family:var(--f-stamp);color:var(--gold);font-size:13px;min-height:16px}
+.timer{text-align:center}
+.timer .val{font-size:30px}
+.timer.low .val{color:#ff6b6b}
+.right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.stars{font-size:20px;letter-spacing:2px;color:var(--gold)}
+.stars .off{color:var(--gold-dim)}
+.mute{background:none;border:1px solid var(--navy-3);color:var(--muted);font:700 10px var(--f-type);letter-spacing:.1em;padding:3px 8px;border-radius:999px;cursor:pointer}
+.mute:focus-visible,.btn:focus-visible,.stamp-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* Aide bubble */
+.bubble-row{padding:0 16px 8px}
+.bubble{position:relative;background:var(--cream);color:#1a2238;border-radius:10px;padding:8px 12px 9px;font-size:14px;line-height:1.35;min-height:3.1em;display:flex;gap:10px;align-items:flex-start}
+.bubble b{font-family:var(--f-stamp);font-weight:400;font-size:11px;letter-spacing:.1em;color:#fff;background:var(--navy-2);border-radius:4px;padding:2px 6px;margin-top:1px;flex:none}
+.bubble.good b{background:var(--green)}
+.bubble.bad b{background:var(--red)}
+.bubble span{min-width:0}
+
+/* Stage */
+.stage{position:relative;flex:1;min-height:0;margin:0 10px;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+
+/* Controls */
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px 14px}
+.stamp-btn{border:0;border-radius:12px;height:64px;color:#fff;font:400 22px var(--f-stamp);letter-spacing:.06em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 0 rgba(0,0,0,.35);transition:transform .06s}
+.stamp-btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.stamp-btn small{font:700 12px var(--f-type);opacity:.7}
+.deny{background:linear-gradient(var(--red),var(--red-2))}
+.approve{background:linear-gradient(var(--green),var(--green-2))}
+
+/* Overlays */
+.overlay{position:absolute;inset:0;z-index:5;background:rgba(9,16,32,.86);display:flex;align-items:center;justify-content:center;padding-block:24px;padding-inline:16px;overflow-y:auto}
+.card{max-width:380px;width:100%;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+.stripes{display:flex;gap:6px;color:var(--gold);font-size:16px;letter-spacing:6px}
+h1{margin:0;font:400 44px/1 var(--f-display);color:var(--cream);text-wrap:balance;text-shadow:0 3px 0 var(--red-2)}
+h1 em{font-style:normal;color:var(--gold)}
+.sub{font:400 16px var(--f-stamp);letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin:-4px 0 0}
+.rules{font-size:14px;line-height:1.5;color:var(--cream);max-width:34ch;margin:0}
+.rules strong{color:var(--gold)}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;font-size:12px;text-align:left}
+.legend div{background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;line-height:1.4}
+.legend h3{margin:0 0 4px;font:400 13px var(--f-stamp);letter-spacing:.08em}
+.legend .yes h3{color:#6fd08f}
+.legend .no h3{color:#ff7a7a}
+.btns{display:flex;flex-direction:column;gap:10px;width:100%}
+.btn{border:0;border-radius:10px;padding:14px 16px;font:400 20px var(--f-stamp);letter-spacing:.06em;cursor:pointer;color:#1a1204;background:linear-gradient(#e8c267,#c5942e);box-shadow:0 4px 0 #7a5a17}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #7a5a17}
+.btn.ghost{background:transparent;color:var(--cream);box-shadow:none;border:1px solid var(--navy-3);font:700 14px var(--f-type);letter-spacing:.08em;padding:11px 16px}
+.note{font-size:11px;color:var(--muted);margin:0}
+.note.parody{font-size:12px;line-height:1.45;color:var(--cream);opacity:.85;max-width:36ch}
+.big{font:400 56px/1 var(--f-display);color:var(--gold);font-variant-numeric:tabular-nums}
+.rank{font:400 22px/1.2 var(--f-display);text-wrap:balance}
+.stats{display:flex;gap:18px;justify-content:center;font-size:13px;color:var(--muted)}
+.stats b{display:block;font:400 18px var(--f-display);color:var(--cream)}
+.quote{font-size:14px;font-style:italic;color:var(--cream);margin:0}
+.copyfallback{font-size:12px;background:rgba(255,255,255,.06);padding:8px;border-radius:6px;-webkit-user-select:text;user-select:text}
+@media (max-height:640px){ h1{font-size:36px} .legend{display:none} .stamp-btn{height:56px} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="hud">
+    <div class="score-wrap"><span class="lbl">Score</span><span class="val" id="score">0</span><span class="combo" id="combo"></span></div>
+    <div class="timer" id="timerBox"><span class="lbl">Term</span><div class="val" id="timer">60</div></div>
+    <div class="right"><span class="lbl">Approval</span><span class="stars" id="stars">★★★</span><button class="mute" id="muteBtn" type="button">SOUND ON</button></div>
+  </header>
+  <div class="bubble-row"><div class="bubble" id="bubble"><b>AIDE</b><span id="bubbleText">Good morning, Mr. President. The naming proposals are on your desk.</span></div></div>
+  <div class="stage" id="stage"><canvas id="cv" aria-label="The President's desk with a naming proposal"></canvas></div>
+  <div class="controls">
+    <button class="stamp-btn deny" id="denyBtn" type="button"><small>←</small>DENY</button>
+    <button class="stamp-btn approve" id="approveBtn" type="button">APPROVE<small>→</small></button>
+  </div>
+
+  <section class="overlay" id="titleOv">
+    <div class="card">
+      <div class="stripes">★ ★ ★ ★ ★</div>
+      <h1>America's <em>Pride</em></h1>
+      <p class="sub">Name It Great</p>
+      <p class="rules">You are <strong>President Trumpet</strong>. Your staff sends naming proposals. <strong>Approve</strong> the names worthy of you. <strong>Deny</strong> the weak ones. Swipe the paper or tap the stamps.</p>
+      <div class="legend">
+        <div class="yes"><h3>APPROVE</h3>America in it. Your name on it. Great, Golden, Victory, War. Big and old-fashioned.</div>
+        <div class="no"><h3>DENY</h3>Humble, shared, gentle, foreign, committee words, numbers that aren't one.</div>
+      </div>
+      <div class="btns">
+        <button class="btn" id="startBtn" type="button">TAKE OFFICE</button>
+        <button class="btn ghost" id="titleMuteBtn" type="button">SOUND ON</button>
+      </div>
+      <p class="note parody">A parody of Donald Trump renaming random things after America, or after himself, for the glory of his ego: the Gulf of America, Lake America, the Department of War, and now "Super Intelligence". President Trumpet is fictional.</p>
+      <p class="note">Best score: <span id="bestTitle">0</span></p>
+    </div>
+  </section>
+
+  <section class="overlay" id="endOv" hidden>
+    <div class="card">
+      <div class="stripes">★ ★ ★ ★ ★</div>
+      <p class="sub" id="endReason">Term over</p>
+      <div class="big" id="endScore">0</div>
+      <div class="rank" id="endRank">Unpaid Intern</div>
+      <p class="quote" id="endQuote"></p>
+      <div class="stats">
+        <div><b id="endCorrect">0</b>right calls</div>
+        <div><b id="endCombo">0</b>best streak</div>
+        <div><b id="endBest">0</b>best score</div>
+      </div>
+      <div class="btns">
+        <button class="btn" id="againBtn" type="button">SERVE ANOTHER TERM</button>
+        <button class="btn ghost" id="copyBtn" type="button">COPY MY SCORE</button>
+      </div>
+      <p class="copyfallback" id="copyFallback" hidden></p>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+   CONFIG — timings, scoring, difficulty curve
+   ========================================================= */
+const CONFIG = {
+  roundTime: 60,
+  hearts: 3,
+  windowStart: 6.0,      // seconds to decide on the first papers
+  windowEnd: 2.4,        // seconds to decide at the end of the term
+  basePoints: 100,
+  speedBonus: 60,
+  comboStep: 3,          // multiplier +1 every 3 right calls
+  maxMult: 5,
+  tempoBase: 92,         // anthem BPM during play
+  tempoPerCombo: 0.06,
+  tempoMaxBoost: 0.7,
+  T: { in: 0.35, stamp: 0.5, slam: 0.26, out: 0.42 },
+  ranks: [
+    [0,    "Unpaid Intern",       "You approved 'Humble Regional Airfield'. Sad."],
+    [600,  "Junior Aide",         "Some great names. Some very bad names."],
+    [1500, "Press Secretary",     "The briefing room approves. Mostly."],
+    [3000, "Chief of Staff",      "You speak fluent Trumpet."],
+    [5000, "Vice President",      "Tremendous. Almost as good as the President."],
+    [8000, "Greatest Namer in History, Maybe Ever", "They're renaming this ranking after you."]
+  ]
+};
+
+/* =========================================================
+   PROPOSALS — {t: thing, n: proposed name, ok: fits the style, w: why}
+   ========================================================= */
+const PROPOSALS = [
+  {t:"the Pacific Ocean", n:"The Great American Ocean", ok:true, w:"Biggest ocean, biggest name."},
+  {t:"the Atlantic Ocean", n:"Ocean of America", ok:true, w:"Put America in it. Always works."},
+  {t:"Lake Ontario", n:"Lake America", ok:true, w:"He actually signed that one in August 2026."},
+  {t:"the Gulf of Mexico", n:"Gulf of America", ok:true, w:"The classic. A beautiful ring."},
+  {t:"the Department of Defense", n:"Department of War", ok:true, w:"Tougher, older, stronger."},
+  {t:"Mount Everest", n:"Mount Trumpet", ok:true, w:"Tallest mountain, your name on top."},
+  {t:"the Moon", n:"Trumpet Moon", ok:true, w:"Your name, visible every night."},
+  {t:"artificial intelligence", n:"Super Intelligence", ok:true, w:"Artificial sounds fake. Super sounds like winning."},
+  {t:"the new aircraft carrier", n:"USS Unbeatable", ok:true, w:"Nobody beats it. It says so on the side."},
+  {t:"the Milky Way", n:"The Trumpet Way", ok:true, w:"The whole galaxy, finally branded."},
+  {t:"a new chemical element", n:"Trumpetium", ok:true, w:"Heavy, shiny, very valuable."},
+  {t:"the White House ballroom", n:"The Golden Tremendous Ballroom", ok:true, w:"Gold plus tremendous. Perfect."},
+  {t:"Mars", n:"Planet America", ok:true, w:"We get there first, we name it."},
+  {t:"French fries", n:"Freedom Fries", ok:true, w:"A proud tradition."},
+  {t:"the Nobel Peace Prize", n:"The Trumpet Peace Prize", ok:true, w:"Why wait for Norway?"},
+  {t:"the Kennedy Center", n:"The Trumpet-Kennedy Center", ok:true, w:"Share the name. Your part first."},
+  {t:"Tuesday", n:"Trumpetsday", ok:true, w:"A whole day, every single week."},
+  {t:"the new tax bill", n:"The Big Beautiful Tax Cut", ok:true, w:"Big and beautiful. Always both."},
+  {t:"the border wall", n:"The Great Big Beautiful Wall", ok:true, w:"Three superlatives. Textbook."},
+  {t:"the White House", n:"The Gold House", ok:true, w:"More gold. Always more gold."},
+  {t:"the Sun", n:"The American Sun", ok:true, w:"It shines on America first."},
+  {t:"the capital's airport", n:"Trumpet International Airport", ok:true, w:"Airports love your name."},
+  {t:"Space Force", n:"Space Force Supreme", ok:true, w:"Supreme is a very strong word."},
+  {t:"the hamburger", n:"The Big Beautiful Burger", ok:true, w:"Big, beautiful, American."},
+  {t:"Greenland", n:"Great Land of America", ok:true, w:"Great is in it now."},
+  {t:"Canada", n:"America North", ok:true, w:"America, but colder."},
+  {t:"hurricane season", n:"Freedom Storm Season", ok:true, w:"Even the storms are patriotic now."},
+  {t:"the internet", n:"The Great American Web", ok:true, w:"We invented it. We name it."},
+  {t:"Veterans Day", n:"Victory Day", ok:true, w:"Winning beats remembering."},
+  {t:"Denali", n:"Mount McKinley", ok:true, w:"Old name, back again. Very strong."},
+  {t:"the national bird", n:"The Bald Eagle of Victory", ok:true, w:"An eagle that wins. Of course."},
+
+  {t:"the Pacific Ocean", n:"Pacific Ocean (unchanged)", ok:false, w:"Unchanged? Nobody remembers unchanged."},
+  {t:"the Moon", n:"Shared Lunar Heritage Site", ok:false, w:"Shared? Heritage? Committee words."},
+  {t:"Mount Everest", n:"Mount Sagarmatha", ok:false, w:"The local name. Not about you."},
+  {t:"artificial intelligence", n:"Collaborative Ethical Cognition Framework", ok:false, w:"Sounds like a UN report."},
+  {t:"the Department of Defense", n:"Department of Feelings", ok:false, w:"Soft. Very soft."},
+  {t:"the new aircraft carrier", n:"USS Participation Trophy", ok:false, w:"Nobody wins with participation."},
+  {t:"the border wall", n:"The Fence of Nuance", ok:false, w:"Nuance never stopped anybody."},
+  {t:"the new tax bill", n:"The Moderately Okay Tax Adjustment", ok:false, w:"Moderately? Never moderately."},
+  {t:"the hamburger", n:"The Plant-Based Patty", ok:false, w:"That is not a burger name."},
+  {t:"the capital's airport", n:"Humble Regional Airfield", ok:false, w:"Humble is a losing word."},
+  {t:"the White House", n:"The Beige House", ok:false, w:"Beige. Terrible color. Low energy."},
+  {t:"Space Force", n:"Space Committee", ok:false, w:"Committees don't win space."},
+  {t:"hurricane season", n:"Gentle Breeze Season", ok:false, w:"Gentle? Weak."},
+  {t:"the new currency", n:"The Euro-Dollar", ok:false, w:"Euro? Very European. Denied."},
+  {t:"coffee", n:"Café au Lait Suprême", ok:false, w:"Too French, sir."},
+  {t:"a new national holiday", n:"Global Unity Day", ok:false, w:"Global? It should be American."},
+  {t:"the new stadium", n:"Community Multipurpose Venue 3", ok:false, w:"Number 3? We're number one."},
+  {t:"the Sun", n:"Medium Star #4471", ok:false, w:"Medium is not a Trumpet word."},
+  {t:"the Milky Way", n:"Galaxy of Shared Humility", ok:false, w:"Humility. In a galaxy. No."},
+  {t:"the victory parade", n:"The Participation Walk", ok:false, w:"It's a parade. We won."},
+  {t:"Mars", n:"The Red Planet (per Scientific Consensus)", ok:false, w:"Scientists picked that. Scientists!"},
+  {t:"Greenland", n:"Kalaallit Nunaat", ok:false, w:"The local name. Not about you."},
+  {t:"Tuesday", n:"Midweek Wellness Day", ok:false, w:"Wellness? Nobody's heard of it."}
+];
+
+/* =========================================================
+   Storage — best score and mute, never fatal
+   ========================================================= */
+const Storage = {
+  get(k, d){ try { const v = localStorage.getItem("ap_" + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem("ap_" + k, JSON.stringify(v)); } catch(e){} }
+};
+
+/* =========================================================
+   Sound — Web Audio synth: brass anthem with tempo control, effects
+   The Star-Spangled Banner (tune c.1773) is in the public domain.
+   ========================================================= */
+const Sound = (() => {
+  let ctx = null, master = null, music = null, sfx = null, noiseBuf = null;
+  let muted = Storage.get("muted", false);
+  const SEMI = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
+  function freq(n){
+    if (n === "R") return 0;
+    const m = n.match(/^([A-G])(b|#)?(\d)$/);
+    const s = SEMI[m[1]] + (m[2] === "b" ? -1 : m[2] === "#" ? 1 : 0);
+    const midi = (+m[3] + 1) * 12 + s;
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+  const parse = str => str.trim().split(/\s+/).map(tok => { const [n, b] = tok.split(":"); return [freq(n), parseFloat(b)]; });
+
+  // Bb major, 3/4, beats in quarter notes
+  const A = "F4:.75 D4:.25 Bb3:1 D4:1 F4:1 Bb4:2 D5:.75 C5:.25 Bb4:1 D4:1 E4:1 F4:2 F4:.5 F4:.5 D5:1.5 C5:.5 Bb4:1 A4:2 G4:.75 A4:.25 Bb4:1 Bb4:1 F4:1 D4:1 Bb3:1";
+  const B = "D5:.5 D5:.5 D5:1 Eb5:1 F5:1 F5:2 Eb5:.5 D5:.5 C5:1 D5:1 Eb5:1 Eb5:2 Eb5:1 D5:1.5 C5:.5 Bb4:1 A4:2 G4:.75 A4:.25 Bb4:1 D4:1 E4:1 F4:2 F4:1 Bb4:1 Bb4:1 Bb4:.5 A4:.5 G4:1 G4:1 G4:1 C5:1 Eb5:.5 D5:.5 C5:.5 Bb4:.5 Bb4:1 A4:1";
+  const FIN = "F4:.5 F4:.5 Bb4:1.5 C5:.5 D5:.5 Eb5:.5 F5:3 Bb4:.5 C5:.5 D5:1.5 Eb5:.5 C5:1 Bb4:3";
+  const SEQ_FULL = parse(A + " " + A + " " + B + " " + FIN + " R:2");
+  const SEQ_FIN = parse(FIN);
+
+  let seq = null, idx = 0, next = 0, tempo = CONFIG.tempoBase, loop = false, timer = null, sour = false;
+
+  function init(){
+    if (ctx){ if (ctx.state === "suspended") ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(ctx.destination);
+    music = ctx.createGain(); music.gain.value = 0.13; music.connect(master);
+    sfx = ctx.createGain(); sfx.gain.value = 0.5; sfx.connect(master);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+
+  // Trumpet voice: bright sawtooth, lip "scoop" into pitch, brightness that follows loudness,
+  // a brass formant around 1.3 kHz, a puff of breath at the attack and delayed vibrato.
+  let shaper = null;
+  function trumpet(f, t, d){
+    if (!shaper){
+      shaper = new Float32Array(1024);
+      for (let i = 0; i < 1024; i++){ const x = i / 511.5 - 1; shaper[i] = Math.tanh(x * 2.2); }
+    }
+    const o = ctx.createOscillator(), o2 = ctx.createOscillator();
+    o.type = "sawtooth"; o2.type = "square";
+    // scoop: start ~40 cents flat, settle in 50 ms
+    o.frequency.setValueAtTime(f * 0.977, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.05);
+    o2.frequency.setValueAtTime(f * 0.977, t); o2.frequency.exponentialRampToValueAtTime(f, t + 0.05);
+    o2.detune.value = 4;
+    const g2 = ctx.createGain(); g2.gain.value = 0.25;
+    // vibrato only on held notes, fading in
+    const lfo = ctx.createOscillator(), lg = ctx.createGain();
+    lfo.frequency.value = 5.6; lg.gain.setValueAtTime(0, t);
+    if (d > 0.35) lg.gain.linearRampToValueAtTime(f * 0.006, t + Math.min(d, 0.6));
+    lfo.connect(lg); lg.connect(o.frequency); lg.connect(o2.frequency);
+
+    const ws = ctx.createWaveShaper(); ws.curve = shaper;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 1.2;
+    lp.frequency.setValueAtTime(f * 1.5, t);
+    lp.frequency.exponentialRampToValueAtTime(Math.min(9000, f * 9), t + 0.04);
+    lp.frequency.exponentialRampToValueAtTime(Math.min(6000, f * 6), t + 0.15);
+    lp.frequency.setValueAtTime(Math.min(6000, f * 6), t + Math.max(0.15, d - 0.05));
+    lp.frequency.exponentialRampToValueAtTime(f * 2, t + d + 0.08);
+    const formant = ctx.createBiquadFilter(); formant.type = "peaking";
+    formant.frequency.value = 1300; formant.Q.value = 1.4; formant.gain.value = 7;
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 180;
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(1.0, t + 0.025);
+    g.gain.exponentialRampToValueAtTime(0.7, t + 0.1);
+    g.gain.setValueAtTime(0.7, t + Math.max(0.1, d - 0.05));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.07);
+
+    o.connect(ws); o2.connect(g2); g2.connect(ws);
+    ws.connect(lp); lp.connect(formant); formant.connect(hp); hp.connect(g); g.connect(music);
+
+    // breath puff at the attack
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const nf = ctx.createBiquadFilter(); nf.type = "bandpass"; nf.frequency.value = 2400; nf.Q.value = 0.8;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.18, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    n.connect(nf); nf.connect(ng); ng.connect(music);
+
+    const end = t + d + 0.1;
+    o.start(t); o2.start(t); lfo.start(t); n.start(t);
+    o.stop(end); o2.stop(end); lfo.stop(end); n.stop(t + 0.07);
+  }
+
+  function tick(){
+    if (!seq || !ctx) return;
+    while (next < ctx.currentTime + 0.15){
+      const [f, b] = seq[idx];
+      const dur = b * 60 / tempo;
+      if (f){ let ff = f; if (sour){ ff *= 1.09; sour = false; } trumpet(ff, next, dur * 0.88); }
+      next += dur; idx++;
+      if (idx >= seq.length){ if (loop) idx = 0; else { stopMusic(); return; } }
+    }
+  }
+  function play(s, tp, lp){
+    if (!ctx) return;
+    stopMusic();
+    seq = s; idx = 0; tempo = tp; loop = lp; next = ctx.currentTime + 0.08;
+    timer = setInterval(tick, 30); tick();
+  }
+  function stopMusic(){ clearInterval(timer); timer = null; seq = null; }
+
+  function noise(t, d, type, f0, f1, vol){
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+    const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.setValueAtTime(f0, t);
+    if (f1) fl.frequency.exponentialRampToValueAtTime(f1, t + d);
+    const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    s.connect(fl); fl.connect(g); g.connect(sfx); s.start(t); s.stop(t + d + 0.02);
+  }
+  function tone(t, d, type, f0, f1, vol){
+    const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t);
+    if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + d);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(sfx); o.start(t); o.stop(t + d + 0.02);
+  }
+  const FX = {
+    thud(){ const t = ctx.currentTime; tone(t, 0.2, "sine", 160, 40, 0.9); noise(t, 0.09, "lowpass", 900, 200, 0.6); },
+    swish(){ const t = ctx.currentTime; noise(t, 0.28, "bandpass", 600, 3200, 0.22); },
+    crumple(){ const t = ctx.currentTime; for (let i = 0; i < 8; i++) noise(t + Math.random() * 0.32, 0.05, "highpass", 1800 + Math.random() * 2500, 0, 0.35); },
+    good(){ const t = ctx.currentTime; tone(t, 0.12, "sine", 880, 0, 0.3); tone(t + 0.1, 0.22, "sine", 1320, 0, 0.3); },
+    bad(){ const t = ctx.currentTime; tone(t, 0.38, "square", 150, 105, 0.16); },
+    whistle(){
+      const t = ctx.currentTime;
+      const o = ctx.createOscillator(); o.type = "sine";
+      o.frequency.setValueAtTime(1400, t); o.frequency.exponentialRampToValueAtTime(240, t + 1.3);
+      const l = ctx.createOscillator(); l.frequency.value = 7;
+      const lg = ctx.createGain(); lg.gain.value = 25; l.connect(lg); lg.connect(o.frequency);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.35, t + 0.05); g.gain.setValueAtTime(0.35, t + 1.1);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
+      o.connect(g); g.connect(sfx); o.start(t); l.start(t); o.stop(t + 1.45); l.stop(t + 1.45);
+    }
+  };
+
+  return {
+    init,
+    playAnthem(){ play(SEQ_FULL, CONFIG.tempoBase, true); },
+    playTitle(){ play(SEQ_FULL, 80, false); },
+    playFinale(){ play(SEQ_FIN, 72, false); },
+    stop: stopMusic,
+    isPlaying(){ return !!seq; },
+    setTempo(t){ tempo = t; },
+    sour(){ sour = true; },
+    fx(name){ if (ctx && FX[name]) FX[name](); },
+    get muted(){ return muted; },
+    toggleMute(){
+      muted = !muted; Storage.set("muted", muted);
+      if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.02);
+      return muted;
+    }
+  };
+})();
+
+/* =========================================================
+   Renderer — canvas desk, paper, stamp marks, the hand
+   ========================================================= */
+const FD = '"Alfa Slab One", Rockwell, Georgia, serif';
+const FS = '"Black Ops One", Impact, "Arial Black", sans-serif';
+const FT = '"Courier Prime", "Courier New", monospace';
+const TAU = Math.PI * 2;
+const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const deskCv = document.createElement("canvas");
+const deskCtx = deskCv.getContext("2d");
+const L = {}; // layout
+
+const lerp = (a, b, k) => a + (b - a) * k;
+const clamp01 = k => Math.max(0, Math.min(1, k));
+const easeOut = k => 1 - Math.pow(1 - k, 3);
+const easeIn = k => k * k * k;
+
+function rr(c, x, y, w, h, r){
+  c.beginPath();
+  c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
+}
+function starPath(c, x, y, r){
+  c.beginPath();
+  for (let i = 0; i < 10; i++){
+    const a = -Math.PI / 2 + i * Math.PI / 5, rad = i % 2 ? r * 0.45 : r;
+    c.lineTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad);
+  }
+  c.closePath();
+}
+function wrap(c, text, maxW){
+  const words = text.split(" "), lines = []; let line = "";
+  for (const w of words){
+    const test = line ? line + " " + w : w;
+    if (c.measureText(test).width > maxW && line){ lines.push(line); line = w; } else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+function seeded(seed){ let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+function layout(){
+  const r = cv.parentElement.getBoundingClientRect();
+  L.W = Math.max(200, r.width); L.H = Math.max(200, r.height);
+  L.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  cv.width = Math.round(L.W * L.dpr); cv.height = Math.round(L.H * L.dpr);
+  L.top = Math.max(46, L.H * 0.1);
+  let pw = Math.min(L.W * 0.8, 330), ph = pw * 1.3;
+  const maxH = (L.H - L.top) * 0.86;
+  if (ph > maxH){ ph = maxH; pw = ph / 1.3; }
+  L.pw = pw; L.ph = ph; L.b = pw / 300;
+  L.cx = L.W / 2; L.cy = L.top + (L.H - L.top) * 0.49;
+  L.tgt = {x: L.cx, y: L.cy + ph * 0.2};
+  L.rest = {x: L.W * 0.8, y: L.H - 34 * L.b};
+  buildDesk();
+}
+
+function buildDesk(){
+  const {W, H, dpr, top} = L, d = deskCtx;
+  deskCv.width = Math.round(W * dpr); deskCv.height = Math.round(H * dpr);
+  d.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const rnd = seeded(1776);
+  // mahogany
+  const g = d.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#6c321c"); g.addColorStop(0.5, "#582815"); g.addColorStop(1, "#3f1c0f");
+  d.fillStyle = g; d.fillRect(0, 0, W, H);
+  for (let y = -20; y < H + 20; y += 3 + rnd() * 5){
+    d.beginPath();
+    const amp = 2 + rnd() * 6, fr = 0.004 + rnd() * 0.01, ph = rnd() * 6;
+    for (let x = 0; x <= W + 12; x += 12) d.lineTo(x, y + Math.sin(x * fr + ph) * amp);
+    d.strokeStyle = rnd() < 0.55 ? "rgba(0,0,0,.14)" : "rgba(255,190,140,.05)";
+    d.lineWidth = 0.6 + rnd() * 1.6; d.stroke();
+  }
+  // top strip: flag, nameplate, pen cup
+  const fx = 16, fy = top * 0.18, fw = Math.min(46, W * 0.12), fh = fw * 0.62;
+  d.strokeStyle = "#caa35a"; d.lineWidth = 2; d.beginPath(); d.moveTo(fx, fy - 2); d.lineTo(fx, fy + fh + 10); d.stroke();
+  for (let i = 0; i < 7; i++){ d.fillStyle = i % 2 ? "#f3efe6" : "#b8262f"; d.fillRect(fx + 1, fy + i * fh / 7, fw, fh / 7 + 0.5); }
+  d.fillStyle = "#1b2d57"; d.fillRect(fx + 1, fy, fw * 0.42, fh * 4 / 7);
+  d.fillStyle = "#f3efe6";
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++){ d.beginPath(); d.arc(fx + 5 + c * fw * 0.12, fy + 4 + r * fh * 0.17, 1, 0, TAU); d.fill(); }
+
+  const nw = Math.min(210, W * 0.5), nh = top * 0.5, nx = W / 2 - nw / 2, ny = top * 0.22;
+  d.fillStyle = "rgba(0,0,0,.35)"; rr(d, nx + 3, ny + 4, nw, nh, 4); d.fill();
+  const ng = d.createLinearGradient(0, ny, 0, ny + nh);
+  ng.addColorStop(0, "#f0cf7a"); ng.addColorStop(0.5, "#c89b3c"); ng.addColorStop(1, "#8f6a22");
+  d.fillStyle = ng; rr(d, nx, ny, nw, nh, 4); d.fill();
+  d.strokeStyle = "rgba(60,40,10,.6)"; d.lineWidth = 1; rr(d, nx + 3, ny + 3, nw - 6, nh - 6, 2); d.stroke();
+  d.fillStyle = "#3b2a0a"; d.textAlign = "center"; d.textBaseline = "middle";
+  let fs = nh * 0.46; d.font = `${fs}px ${FD}`;
+  while (d.measureText("PRESIDENT TRUMPET").width > nw - 16 && fs > 8){ fs -= 1; d.font = `${fs}px ${FD}`; }
+  d.fillText("PRESIDENT TRUMPET", W / 2, ny + nh / 2 + 1);
+
+  const pr = Math.min(top * 0.28, 16), px = W - 16 - pr, py = top * 0.5;
+  d.strokeStyle = "#1b1b1b"; d.lineWidth = 2;
+  [[-5, -14], [2, -17], [7, -12]].forEach(([ox, oy]) => { d.beginPath(); d.moveTo(px + ox * 0.4, py); d.lineTo(px + ox, py + oy); d.stroke(); });
+  const pg = d.createRadialGradient(px - pr * 0.3, py - pr * 0.3, 1, px, py, pr);
+  pg.addColorStop(0, "#f7d98a"); pg.addColorStop(1, "#9c7427");
+  d.fillStyle = pg; d.beginPath(); d.arc(px, py, pr, 0, TAU); d.fill();
+
+  // green leather blotter
+  const bx = 12, by = top + 4, bw = W - 24, bh = H - top - 14;
+  d.fillStyle = "rgba(0,0,0,.35)"; rr(d, bx + 2, by + 4, bw, bh, 8); d.fill();
+  const bg = d.createRadialGradient(W / 2, by + bh * 0.45, 20, W / 2, by + bh * 0.45, Math.max(bw, bh) * 0.7);
+  bg.addColorStop(0, "#2a4f3c"); bg.addColorStop(1, "#16301f");
+  d.fillStyle = bg; rr(d, bx, by, bw, bh, 8); d.fill();
+  d.setLineDash([6, 4]); d.strokeStyle = "rgba(216,173,74,.5)"; d.lineWidth = 1.2;
+  rr(d, bx + 8, by + 8, bw - 16, bh - 16, 5); d.stroke(); d.setLineDash([]);
+  // leather corners
+  d.fillStyle = "#3a1f12";
+  const cs = 28;
+  [[bx, by, 1, 1], [bx + bw, by, -1, 1], [bx, by + bh, 1, -1], [bx + bw, by + bh, -1, -1]].forEach(([x, y, sx, sy]) => {
+    d.beginPath(); d.moveTo(x, y); d.lineTo(x + cs * sx, y); d.lineTo(x, y + cs * sy); d.closePath(); d.fill();
+  });
+  // vignette
+  const vg = d.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.45)");
+  d.fillStyle = vg; d.fillRect(0, 0, W, H);
+}
+
+function drawStampMark(c, m){
+  const b = L.b;
+  c.save();
+  c.translate(0, L.ph * 0.2); c.rotate(m.rot);
+  c.globalAlpha = 0.86;
+  c.strokeStyle = c.fillStyle = m.color;
+  c.font = `${30 * b}px ${FS}`; c.textAlign = "center"; c.textBaseline = "middle";
+  const tw = c.measureText(m.text).width, bw = tw + 30 * b, bh = 50 * b;
+  c.lineWidth = 4 * b; rr(c, -bw / 2, -bh / 2, bw, bh, 6 * b); c.stroke();
+  c.lineWidth = 1.5 * b; rr(c, -bw / 2 + 6 * b, -bh / 2 + 6 * b, bw - 12 * b, bh - 12 * b, 3 * b); c.stroke();
+  c.fillText(m.text, 0, 2 * b);
+  c.globalAlpha = 0.75; c.fillStyle = "#fbf6e8";
+  for (const s of m.specks){ c.beginPath(); c.arc(s[0] * bw / 2, s[1] * bh / 2, s[2] * b, 0, TAU); c.fill(); }
+  c.restore();
+}
+
+function drawPaper(p){
+  const {pw, ph, b} = L, c = ctx, item = p.item;
+  c.save();
+  c.translate(L.cx + p.x, L.cy + p.y); c.rotate(p.rot); c.scale(p.s, p.s);
+  c.fillStyle = "rgba(0,0,0,.35)"; rr(c, -pw / 2 + 6, -ph / 2 + 9, pw, ph, 4); c.fill();
+  c.fillStyle = "#fbf6e8"; rr(c, -pw / 2, -ph / 2, pw, ph, 3); c.fill();
+
+  const pad = 22 * b, left = -pw / 2 + pad, right = pw / 2 - pad, w = right - left;
+  let y = -ph / 2 + pad;
+  // seal
+  c.strokeStyle = "#b08a3a"; c.lineWidth = 1.6 * b;
+  c.beginPath(); c.arc(0, y + 15 * b, 15 * b, 0, TAU); c.stroke();
+  c.beginPath(); c.arc(0, y + 15 * b, 11 * b, 0, TAU); c.stroke();
+  c.fillStyle = "#b08a3a"; starPath(c, 0, y + 15 * b, 7 * b); c.fill();
+  y += 44 * b;
+  c.fillStyle = "#1c2640"; c.textAlign = "center"; c.textBaseline = "alphabetic";
+  c.font = `700 ${11 * b}px ${FT}`; c.fillText("OFFICE OF THE PRESIDENT", 0, y);
+  y += 7 * b;
+  c.strokeStyle = "#1c2640"; c.lineWidth = 1 * b;
+  c.beginPath(); c.moveTo(left, y); c.lineTo(right, y); c.stroke();
+  y += 15 * b;
+  c.font = `400 ${10 * b}px ${FT}`; c.fillStyle = "#4a4a4a";
+  c.fillText(`NAMING PROPOSAL No. ${String(p.no).padStart(4, "0")}`, 0, y);
+  y += 26 * b;
+
+  c.textAlign = "left";
+  c.font = `700 ${9.5 * b}px ${FT}`; c.fillStyle = "#7a7468"; c.fillText("SUBJECT", left, y);
+  y += 18 * b;
+  c.font = `700 ${15 * b}px ${FT}`; c.fillStyle = "#1b1b1b";
+  for (const ln of wrap(c, cap(item.t), w)){ c.fillText(ln, left, y); y += 18 * b; }
+  y += 10 * b;
+  c.font = `700 ${9.5 * b}px ${FT}`; c.fillStyle = "#7a7468"; c.fillText("PROPOSED NEW NAME", left, y);
+  y += 10 * b;
+
+  // name box, font shrinks to fit 3 lines
+  let fs = 26 * b, lines;
+  do { c.font = `${fs}px ${FD}`; lines = wrap(c, item.n, w - 20 * b); if (lines.length <= 3) break; fs -= 1; } while (fs > 12 * b);
+  const lh = fs * 1.15, boxH = lines.length * lh + 20 * b;
+  c.strokeStyle = "#1c2f5c"; c.lineWidth = 2 * b; rr(c, left, y, w, boxH, 4 * b); c.stroke();
+  c.lineWidth = 0.8 * b; rr(c, left + 4 * b, y + 4 * b, w - 8 * b, boxH - 8 * b, 2 * b); c.stroke();
+  c.fillStyle = "#1c2f5c"; c.textAlign = "center"; c.textBaseline = "middle";
+  lines.forEach((ln, i) => c.fillText(ln, 0, y + 10 * b + lh * (i + 0.5)));
+  c.textBaseline = "alphabetic";
+
+  // footer: signature
+  const yF = ph / 2 - pad - 18 * b;
+  c.strokeStyle = "#8a8378"; c.lineWidth = 1 * b;
+  c.beginPath(); c.moveTo(left, yF); c.lineTo(left + w * 0.55, yF); c.stroke();
+  c.font = `400 ${8 * b}px ${FT}`; c.fillStyle = "#7a7468"; c.textAlign = "left";
+  c.fillText("SIGNATURE OF THE PRESIDENT", left, yF + 11 * b);
+  c.textAlign = "right"; c.fillText("DEPT. OF NAMES", right, yF + 11 * b);
+
+  // decision fuse
+  if (p.fuse !== undefined){
+    const fy = ph / 2 - 11 * b, fw = pw - 2 * pad;
+    c.fillStyle = "#e3dccb"; rr(c, left, fy, fw, 5 * b, 2.5 * b); c.fill();
+    const k = clamp01(p.fuse);
+    c.fillStyle = k > 0.5 ? "#2e7a49" : k > 0.25 ? "#c58a1e" : "#b8262f";
+    if (k > 0){ rr(c, left, fy, Math.max(5 * b, fw * k), 5 * b, 2.5 * b); c.fill(); }
+  }
+
+  if (p.mark) drawStampMark(c, p.mark);
+
+  if (p.crumple > 0){
+    c.fillStyle = `rgba(110,90,60,${p.crumple * 0.45})`; rr(c, -pw / 2, -ph / 2, pw, ph, 3); c.fill();
+    c.strokeStyle = `rgba(60,45,25,${p.crumple * 0.7})`; c.lineWidth = 1.2 * b;
+    for (const cr of p.creases){ c.beginPath(); c.moveTo(cr[0] * pw / 2, cr[1] * ph / 2); c.lineTo(cr[2] * pw / 2, cr[3] * ph / 2); c.lineTo(cr[4] * pw / 2, cr[5] * ph / 2); c.stroke(); }
+  }
+  c.restore();
+}
+
+function drawHand(h){
+  const c = ctx, b = L.b, s = 1 + h.lift * 0.18;
+  c.save();
+  // shadow grows away as the hand lifts
+  c.fillStyle = `rgba(0,0,0,${0.3 - h.lift * 0.1})`;
+  c.beginPath(); c.ellipse(h.x + 10 * b + h.lift * 24 * b, h.y + 10 * b + h.lift * 28 * b, 58 * b, 26 * b, 0, 0, TAU); c.fill();
+  c.translate(h.x, h.y); c.scale(s, s);
+
+  // sleeve toward the bottom-right corner
+  const wx = 14 * b, wy = 44 * b;
+  const fx = (L.W * 1.05 - h.x) / s, fy = (L.H + 120 - h.y) / s;
+  const dx = fx - wx, dy = fy - wy, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+  c.lineCap = "butt";
+  c.strokeStyle = "#0f1a34"; c.lineWidth = 70 * b;
+  c.beginPath(); c.moveTo(wx + ux * 14 * b, wy + uy * 14 * b); c.lineTo(fx, fy); c.stroke();
+  c.strokeStyle = "#1c2c52"; c.lineWidth = 40 * b;
+  c.beginPath(); c.moveTo(wx + ux * 16 * b - uy * 12 * b, wy + uy * 16 * b + ux * 12 * b); c.lineTo(fx - uy * 12 * b, fy + ux * 12 * b); c.stroke();
+  c.strokeStyle = "#f2efe8"; c.lineWidth = 62 * b;
+  c.beginPath(); c.moveTo(wx + ux * 2 * b, wy + uy * 2 * b); c.lineTo(wx + ux * 16 * b, wy + uy * 16 * b); c.stroke();
+  c.fillStyle = "#e0b64e";
+  c.beginPath(); c.arc(wx + ux * 9 * b + uy * 22 * b, wy + uy * 9 * b - ux * 22 * b, 4.5 * b, 0, TAU); c.fill();
+
+  // wooden stamp block with inked rubber edge
+  c.fillStyle = "#3b2a1c"; rr(c, -54 * b, -24 * b, 108 * b, 42 * b, 6 * b); c.fill();
+  c.strokeStyle = h.ink; c.lineWidth = 3 * b; rr(c, -54 * b, -24 * b, 108 * b, 42 * b, 6 * b); c.stroke();
+  c.fillStyle = "#5a3d24"; rr(c, -46 * b, -18 * b, 92 * b, 30 * b, 4 * b); c.fill();
+  // knob
+  c.fillStyle = "#8d5b2f"; c.beginPath(); c.arc(0, -4 * b, 17 * b, 0, TAU); c.fill();
+  c.fillStyle = "rgba(255,255,255,.18)"; c.beginPath(); c.arc(-5 * b, -9 * b, 6 * b, 0, TAU); c.fill();
+
+  // spray-tanned fist
+  const skin = "#eba35c", line = "#b86d31";
+  c.fillStyle = skin; c.strokeStyle = line; c.lineWidth = 2 * b;
+  c.beginPath(); c.ellipse(6 * b, 22 * b, 36 * b, 28 * b, -0.25, 0, TAU); c.fill(); c.stroke();
+  for (let i = 0; i < 4; i++){
+    c.beginPath(); c.ellipse(-17 * b + i * 11.5 * b, 5 * b + Math.abs(i - 1.5) * 2 * b, 7 * b, 10 * b, 0, 0, TAU);
+    c.fill(); c.stroke();
+  }
+  c.beginPath(); c.ellipse(-28 * b, 24 * b, 9 * b, 17 * b, 0.55, 0, TAU); c.fill(); c.stroke();
+  c.restore();
+}
+
+/* =========================================================
+   Game — state machine TITLE → PLAYING → GAME_OVER
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const UI = {
+  score: $("score"), combo: $("combo"), timer: $("timer"), timerBox: $("timerBox"), stars: $("stars"),
+  bubble: $("bubble"), bubbleText: $("bubbleText"), mute: $("muteBtn"),
+  titleOv: $("titleOv"), endOv: $("endOv")
+};
+const PRAISE = ["Excellent call, sir.", "Tremendous instinct, sir.", "The press loves it, sir.", "Very presidential, sir.", "Perfect, sir."];
+
+const G = {
+  state: "title", score: 0, combo: 0, bestCombo: 0, hearts: CONFIG.hearts, time: CONFIG.roundTime, elapsed: 0,
+  deck: [], cur: null, phase: "idle", pt: 0, window: CONFIG.windowStart, wleft: 0,
+  decision: null, correct: false, slammed: false, pendingFx: null,
+  banner: null, floaters: [], shake: 0, paperNo: 40, correctCount: 0, clock: 0,
+  best: Storage.get("best", 0)
+};
+
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function drawItem(){ if (!G.deck.length) G.deck = shuffle(PROPOSALS.slice()); return G.deck.pop(); }
+function say(text, mood){ UI.bubbleText.textContent = text; UI.bubble.className = "bubble" + (mood ? " " + mood : ""); }
+function mult(){ return Math.min(CONFIG.maxMult, 1 + Math.floor(G.combo / CONFIG.comboStep)); }
+
+function makePaper(item, y){
+  const r = Math.random;
+  return {
+    item, x: 0, y, rot0: (r() - 0.5) * 0.08, rot: -0.2, s: 1, mark: null, crumple: 0, no: ++G.paperNo,
+    creases: Array.from({length: 6}, () => [r() * 2 - 1, r() * 2 - 1, r() * 2 - 1, r() * 2 - 1, r() * 2 - 1, r() * 2 - 1])
+  };
+}
+function makeMark(approve){
+  return {
+    text: approve ? "APPROVED" : "DENIED", color: approve ? "#1f7a44" : "#b8262f",
+    rot: (Math.random() - 0.5) * 0.35 - 0.08,
+    specks: Array.from({length: 14}, () => [Math.random() * 2 - 1, Math.random() * 2 - 1, 0.6 + Math.random() * 1.4])
+  };
+}
+
+function startGame(){
+  Object.assign(G, { state: "play", score: 0, combo: 0, bestCombo: 0, hearts: CONFIG.hearts, time: CONFIG.roundTime,
+    elapsed: 0, banner: null, floaters: [], correctCount: 0, deck: shuffle(PROPOSALS.slice()) });
+  UI.titleOv.hidden = true; UI.endOv.hidden = true;
+  Sound.playAnthem();
+  nextPaper();
+}
+
+function nextPaper(){
+  const item = drawItem();
+  G.cur = makePaper(item, -(L.cy + L.ph));
+  G.phase = "in"; G.pt = 0;
+  G.window = lerp(CONFIG.windowStart, CONFIG.windowEnd, clamp01(G.elapsed / CONFIG.roundTime));
+  say(`Sir, a naming proposal for ${item.t}.`);
+  Sound.fx("swish");
+}
+
+function decide(approve){
+  if (G.state !== "play" || G.phase !== "wait") return;
+  const item = G.cur.item;
+  const correct = approve !== null && approve === item.ok;
+  G.decision = approve; G.correct = correct;
+  if (correct){
+    G.combo++; G.bestCombo = Math.max(G.bestCombo, G.combo); G.correctCount++;
+    const pts = CONFIG.basePoints * mult() + Math.round(CONFIG.speedBonus * G.wleft / G.window);
+    G.score += pts;
+    G.floaters.push({text: "+" + pts, x: L.cx + L.pw * 0.25, y: L.cy - L.ph * 0.3, t: 0});
+    G.banner = {text: "PERFECT CALL!", color: "#e8c267", t: 0};
+    say(`${PRAISE[Math.floor(Math.random() * PRAISE.length)]} ${item.w}`, "good");
+    G.pendingFx = "good";
+  } else {
+    G.combo = 0; G.hearts--;
+    Sound.sour();
+    if (approve === null){
+      G.banner = {text: "TOO SLOW!", color: "#ff6b6b", t: 0};
+      say(`Sir, the press is waiting! ${item.ok ? "That one was very you." : "That one was weak anyway."}`, "bad");
+      Sound.fx("bad");
+    } else {
+      G.banner = {text: "FAKE NAME!", color: "#ff6b6b", t: 0};
+      say(approve ? `Sir… you approved it? ${item.w}` : `Sir… that one was very you. ${item.w}`, "bad");
+      G.pendingFx = "bad";
+    }
+  }
+  const boost = Math.min(CONFIG.tempoMaxBoost, G.combo * CONFIG.tempoPerCombo);
+  Sound.setTempo(CONFIG.tempoBase * (1 + boost));
+  G.cur.fuse = undefined;
+  if (approve === null){ G.phase = "out"; G.pt = 0; }
+  else { G.phase = "stamp"; G.pt = 0; G.slammed = false; }
+}
+
+function endGame(reason){
+  G.state = "over"; G.phase = "idle";
+  Sound.stop();
+  const newBest = G.score > G.best;
+  if (newBest){ G.best = G.score; Storage.set("best", G.best); }
+  let ri = 0; CONFIG.ranks.forEach((r, i) => { if (G.score >= r[0]) ri = i; });
+  const rank = CONFIG.ranks[ri];
+  $("endReason").textContent = reason === "impeached" ? "Approval rating: zero" : (newBest ? "New record term" : "Term over");
+  $("endScore").textContent = G.score.toLocaleString("en-US");
+  $("endRank").textContent = rank[1];
+  $("endQuote").textContent = rank[2];
+  $("endCorrect").textContent = G.correctCount;
+  $("endCombo").textContent = G.bestCombo;
+  $("endBest").textContent = G.best.toLocaleString("en-US");
+  $("bestTitle").textContent = G.best.toLocaleString("en-US");
+  $("copyBtn").textContent = "COPY MY SCORE"; $("copyFallback").hidden = true;
+  G.rankName = rank[1];
+  UI.endOv.hidden = false;
+  if (ri >= 3) Sound.playFinale(); else Sound.fx("whistle");
+  say(ri >= 3 ? "Sir, historians are calling it the greatest naming term ever." : "Sir, the naming term is over. Maybe more gold next time.", ri >= 3 ? "good" : "bad");
+}
+
+function update(dt){
+  G.clock += dt;
+  if (G.banner){ G.banner.t += dt; if (G.banner.t > 1.1) G.banner = null; }
+  G.floaters = G.floaters.filter(f => (f.t += dt) < 0.9);
+  G.shake = Math.max(0, G.shake - dt);
+  if (G.state !== "play") return;
+
+  G.time -= dt; G.elapsed += dt;
+  const T = CONFIG.T, p = G.cur;
+  switch (G.phase){
+    case "in": {
+      G.pt += dt; const k = easeOut(clamp01(G.pt / T.in));
+      p.y = lerp(-(L.cy + L.ph), 0, k); p.rot = lerp(-0.2, p.rot0, k); p.fuse = 1;
+      if (G.pt >= T.in){ G.phase = "wait"; G.pt = 0; G.wleft = G.window; }
+      break;
+    }
+    case "wait": {
+      G.wleft -= dt; p.fuse = G.wleft / G.window;
+      if (G.time <= 0){ endGame("time"); return; }
+      if (G.wleft <= 0) decide(null);
+      break;
+    }
+    case "stamp": {
+      G.pt += dt;
+      if (!G.slammed && G.pt >= T.slam){
+        G.slammed = true; p.mark = makeMark(G.decision);
+        Sound.fx("thud"); if (G.pendingFx){ Sound.fx(G.pendingFx); G.pendingFx = null; }
+        if (!REDUCED) G.shake = 0.22;
+      }
+      if (G.pt >= T.stamp){ G.phase = "out"; G.pt = 0; Sound.fx(G.decision ? "swish" : "crumple"); }
+      break;
+    }
+    case "out": {
+      G.pt += dt; const k = clamp01(G.pt / T.out);
+      if (G.decision === true){ p.x = k * k * L.W * 1.1; p.rot = p.rot0 + k * 0.5; }
+      else if (G.decision === false){ p.x = -k * k * L.W; p.s = 1 - 0.7 * k; p.rot -= dt * 9; p.crumple = k; }
+      else { p.y = k * k * L.H; p.rot = p.rot0 + k * 0.3; p.crumple = k * 0.6; }
+      if (G.pt >= T.out){
+        if (G.hearts <= 0) endGame("impeached");
+        else if (G.time <= 0) endGame("time");
+        else nextPaper();
+      }
+      break;
+    }
+  }
+}
+
+function handPose(){
+  const b = L.b, rest = {x: L.rest.x, y: L.rest.y + Math.sin(G.clock * 2) * 3, lift: 0.35};
+  if (G.state !== "play" || G.phase !== "stamp") return rest;
+  const t = G.pt, tgt = L.tgt;
+  if (t < 0.2){ const k = easeOut(t / 0.2); return {x: lerp(rest.x, tgt.x, k), y: lerp(rest.y, tgt.y - 20 * b, k), lift: lerp(0.35, 1, k)}; }
+  if (t < CONFIG.T.slam){ const k = (t - 0.2) / (CONFIG.T.slam - 0.2); return {x: tgt.x, y: lerp(tgt.y - 20 * b, tgt.y, k), lift: 1 - k}; }
+  if (t < 0.34) return {x: tgt.x, y: tgt.y, lift: 0};
+  const k = easeIn(clamp01((t - 0.34) / 0.16));
+  return {x: lerp(tgt.x, rest.x, k), y: lerp(tgt.y, rest.y, k), lift: lerp(0, 0.35, k)};
+}
+
+function render(){
+  const c = ctx;
+  c.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
+  c.clearRect(0, 0, L.W, L.H);
+  c.save();
+  if (G.shake > 0){ const m = G.shake * 18; c.translate((Math.random() - 0.5) * m, (Math.random() - 0.5) * m); }
+  c.drawImage(deskCv, 0, 0, L.W, L.H);
+  if (G.cur) drawPaper(G.cur);
+  const h = handPose();
+  h.ink = G.phase === "stamp" ? (G.decision ? "#1f7a44" : "#b8262f") : "#1c2f5c";
+  drawHand(h);
+  c.restore();
+
+  const b = L.b;
+  if (G.banner){
+    const k = G.banner.t, sc = k < 0.15 ? lerp(1.6, 1, k / 0.15) : 1, a = k > 0.8 ? 1 - (k - 0.8) / 0.3 : 1;
+    c.save(); c.globalAlpha = clamp01(a);
+    c.translate(L.cx, L.top + 30 * b); c.scale(sc, sc);
+    c.font = `${34 * b}px ${FS}`; c.textAlign = "center"; c.textBaseline = "middle";
+    c.lineWidth = 6 * b; c.strokeStyle = "#0e1a33"; c.strokeText(G.banner.text, 0, 0);
+    c.fillStyle = G.banner.color; c.fillText(G.banner.text, 0, 0);
+    c.restore();
+  }
+  for (const f of G.floaters){
+    c.save(); c.globalAlpha = 1 - f.t / 0.9;
+    c.font = `${24 * b}px ${FD}`; c.textAlign = "center";
+    c.lineWidth = 5 * b; c.strokeStyle = "#0e1a33"; c.strokeText(f.text, f.x, f.y - f.t * 50);
+    c.fillStyle = "#e8c267"; c.fillText(f.text, f.x, f.y - f.t * 50);
+    c.restore();
+  }
+}
+
+let lastHud = "";
+function hud(){
+  const t = Math.max(0, Math.ceil(G.time));
+  const m = mult();
+  const key = `${G.score}|${t}|${G.hearts}|${G.combo}`;
+  if (key === lastHud) return; lastHud = key;
+  UI.score.textContent = G.score.toLocaleString("en-US");
+  UI.timer.textContent = t;
+  UI.timerBox.classList.toggle("low", G.state === "play" && t <= 10);
+  UI.combo.textContent = G.combo >= 2 ? `STREAK ${G.combo}${m > 1 ? " · x" + m : ""}` : "";
+  UI.stars.innerHTML = "★".repeat(Math.max(0, G.hearts)) + `<span class="off">${"★".repeat(CONFIG.hearts - Math.max(0, G.hearts))}</span>`;
+}
+
+let lastT = 0;
+function frame(ts){
+  const dt = Math.min(0.05, (ts - lastT) / 1000 || 0); lastT = ts;
+  update(dt); render(); hud();
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   Input — swipe, buttons, keyboard
+   ========================================================= */
+let swipe = null;
+cv.addEventListener("pointerdown", e => { swipe = {x: e.clientX, y: e.clientY}; });
+cv.addEventListener("pointerup", e => {
+  if (!swipe) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) decide(dx > 0);
+});
+cv.addEventListener("pointercancel", () => { swipe = null; });
+$("approveBtn").addEventListener("click", () => decide(true));
+$("denyBtn").addEventListener("click", () => decide(false));
+window.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight" || e.key === "d") decide(true);
+  else if (e.key === "ArrowLeft" || e.key === "a") decide(false);
+  else if ((e.key === "Enter" || e.key === " ") && G.state !== "play"){ e.preventDefault(); Sound.init(); startGame(); }
+});
+
+$("startBtn").addEventListener("click", () => { Sound.init(); startGame(); });
+$("againBtn").addEventListener("click", () => { Sound.init(); startGame(); });
+// Browsers only allow sound after the first touch, click or key press:
+// the anthem starts on that first interaction unless sound is turned off.
+function autoplayAnthem(){
+  Sound.init();
+  if (!Sound.muted && G.state !== "play" && !Sound.isPlaying()) Sound.playTitle();
+}
+["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, autoplayAnthem, {once: true, capture: true}));
+
+function syncMute(){
+  const label = Sound.muted ? "SOUND OFF" : "SOUND ON";
+  UI.mute.textContent = label; $("titleMuteBtn").textContent = label;
+  UI.mute.setAttribute("aria-pressed", String(!Sound.muted)); $("titleMuteBtn").setAttribute("aria-pressed", String(!Sound.muted));
+}
+function onMute(e){
+  e.stopPropagation();
+  Sound.init(); Sound.toggleMute(); syncMute();
+  if (!Sound.muted && G.state !== "play" && !Sound.isPlaying()) Sound.playTitle();
+}
+UI.mute.addEventListener("click", onMute);
+$("titleMuteBtn").addEventListener("click", onMute);
+syncMute();
+
+$("copyBtn").addEventListener("click", () => {
+  const text = `I scored ${G.score.toLocaleString("en-US")} as President in America's Pride and ranked "${G.rankName}". Can you name it greater?`;
+  const fb = $("copyFallback");
+  const fallback = () => { fb.textContent = text; fb.hidden = false; };
+  try {
+    navigator.clipboard.writeText(text).then(() => { $("copyBtn").textContent = "COPIED"; }, fallback);
+  } catch(e){ fallback(); }
+});
+
+/* =========================================================
+   Boot — title screen shows a sample approved proposal
+   ========================================================= */
+$("bestTitle").textContent = G.best.toLocaleString("en-US");
+layout();
+G.cur = makePaper(PROPOSALS[0], 0); G.cur.rot = G.cur.rot0 = -0.03; G.cur.mark = makeMark(true);
+new ResizeObserver(() => layout()).observe(cv.parentElement);
+if (document.fonts && document.fonts.load){
+  Promise.all([`20px ${FD}`, `20px ${FS}`, `700 14px ${FT}`, `14px ${FT}`].map(f => document.fonts.load(f).catch(() => {})))
+    .then(() => layout());
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

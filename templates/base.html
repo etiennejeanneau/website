@@ -6,7 +6,9 @@
 {# seo_title: a longer name some pages give search engines and shares. #}
 {% set share_title = (page.meta.seo_title or page.title) if page else site.title %}
 {% set page_title = share_title ~ ' · ' ~ site.title if page else site.title ~ ' · ' ~ t.tagline %}
-{% set page_desc = page.tagline if page and page.tagline else t.description | trim %}
+{# description: a longer text some pages give search engines and shares; the
+   card and the page itself keep the short tagline. #}
+{% set page_desc = (page.meta.description or page.tagline) if page and (page.meta.description or page.tagline) else t.description | trim %}
 {% set page_url = site.url ~ (page.url if page else home) %}
 {% set og_image = site.url ~ (page.og_path if page else og_default) %}
 <title>{{ page_title }}</title>

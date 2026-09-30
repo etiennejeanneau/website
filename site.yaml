@@ -38,6 +38,7 @@ og_colors:
   arrr-you-lost: "#0f3f62"
   waza-kotoba: "#2b4570"
   le-lion-et-le-rat: "#3b2a1a"
+  americas-pride: "#0e1a33"
 
 # Where each game keeps the player's best score, so the share button in the
 # corner of the game can say it (templates/share.html). Every game stores it
@@ -54,3 +55,4 @@ scores:
   whack-a-president: { key: wap_best, unit: presidents }
   desktop-tycoon:    { key: dt.save.v3, field: earned, unit: MB freed }
   arrr-you-lost:     { key: arrryoulost.v3, field: gold, unit: gold }
+  americas-pride:    { key: ap_best, unit: points }
