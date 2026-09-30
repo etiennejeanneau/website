@@ -60,6 +60,11 @@ small, and never add a framework or a build step beyond `python build.py`.
 7. Commit with a message like `Add <Game Name>` and push. The workflow builds,
    syncs to S3 and invalidates CloudFront; the page is live in about a minute.
 
+Two optional front matter keys, for when the short tagline is not enough:
+`seo_title` (a longer title for search engines and shares) and `description`
+(a longer meta and share description; the card keeps the tagline). Each
+language writes its own `description`; it is not inherited.
+
 If the game keeps a best score in the browser, add a line for the slug under
 `scores` in `site.yaml` saying where: the share button in the corner of the
 game then says that score. A game missing from that list still gets the

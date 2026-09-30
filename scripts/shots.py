@@ -60,6 +60,7 @@ SETTLE = 2000
 # One line per game: what to do before the picture is taken. See the top of
 # this file for the words it understands. Nothing here = the title screen.
 RECIPES = {
+    "americas-pride":    "tap #startBtn, wait 2.5s",
     "aisle-be-back":     "tap, wait 2.2s",
     "arrr-you-lost":     "tap #sail, wait 0.4s, drag 195 420 to 150 545, wait 2.2s",
     "desktop-tycoon":    "tap #m-ok, wait 1s",

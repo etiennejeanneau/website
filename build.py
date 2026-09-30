@@ -95,6 +95,9 @@ narration    animation only: the language it is told in, e.g. fr
 based_on     animation only: the text it tells, {title, author, year}
 seo_title    optional: a longer title for search engines and shares; the page
              itself keeps `title`
+description  optional: a longer text for search engines and shares; the card
+             and the page itself keep `tagline`. Not inherited: each language
+             writes its own
 iterations   int, shown as a stat on the page
 prompts      int, shown as a stat on the page
 session      free text, when it was built
