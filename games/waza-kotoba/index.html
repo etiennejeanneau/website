@@ -1,18 +1,7 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<meta name="description" content="Waza Kotoba — apprendre les noms des techniques de judo et de junomichi : briques de japonais, familles, nage-no-kata, katame-no-kata, ju-no-kata. Jeu gratuit, sans inscription.">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Waza Kotoba</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<style>
-  [hidden]{display:none!important}
-  img{max-width:100%}
-  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-</style>
 <style>
   :root{
     --bg:#ECEBDF; --bg2:#F7F6EE; --ink:#1C2230; --ink2:#5B6170; --line:#D3D1C2;
@@ -67,7 +56,7 @@
   .navrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
   .hidden-name{filter:blur(7px);cursor:pointer;user-select:none}
-  nav{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:4px}
+  nav{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:4px}
   nav button{border:0;background:transparent;color:var(--ink2);font:inherit;font-weight:600;font-size:12px;padding:8px 2px;border-radius:7px;cursor:pointer}
   @media (max-width:520px){ nav{grid-template-columns:repeat(4,1fr)} }
   .tiles.wide{grid-template-columns:1fr 1fr}
@@ -146,13 +135,14 @@
   .lex td:last-child{color:var(--ink2)}
   .lex .r{font-size:12px;color:var(--ink2);white-space:nowrap}
   .note{font-size:12px;color:var(--ink2);border-top:1px solid var(--line);padding-top:10px}
+  .belt{display:inline-block;width:34px;height:10px;border-radius:3px;border:1px solid var(--line);vertical-align:middle;margin-right:6px;flex:none}
+  .choice .belt{margin-right:10px}
+  .prompt .big .belt{width:48px;height:14px}
   .filter{display:flex;gap:6px;flex-wrap:wrap}
   .filter button{border:1px solid var(--line);background:var(--bg2);color:var(--ink2);font:inherit;font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;cursor:pointer}
   .filter button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 </style>
 
-</head>
-<body>
 <div class="wrap">
   <header>
     <h1>Waza Kotoba<small>Les mots des techniques · junomichi / judo</small></h1>
@@ -166,6 +156,7 @@
     <button role="tab" data-mode="family" aria-selected="false">Famille</button>
     <button role="tab" data-mode="image" aria-selected="false">Image</button>
     <button role="tab" data-mode="kata" aria-selected="false">Kata</button>
+    <button role="tab" data-mode="grade" aria-selected="false">Grades</button>
     <button role="tab" data-mode="lexicon" aria-selected="false">Lexique</button>
   </nav>
 
@@ -374,6 +365,42 @@ const DOJO = [
   ["ju","柔","souplesse"],["do","道","voie"],["michi","道","voie (même kanji que dō)"],["sensei","先生","enseignant"],
 ];
 
+// Grades : kyu (avant la ceinture noire, compte à rebours) puis dan.
+// n = rang croissant (1 = 6e kyu … 16 = 10e dan) ; alt = variantes acceptées ; trap = fausses formes fréquentes.
+// Ceintures : correspondance FFJDA adulte. À faire valider par les enseignants (le junomichi peut différer).
+const BELT = {
+  blanche:{fr:"blanche", css:"#FFFFFF"}, jaune:{fr:"jaune", css:"#F2C230"}, orange:{fr:"orange", css:"#E8822A"},
+  verte:{fr:"verte", css:"#3E9A4F"}, bleue:{fr:"bleue", css:"#2F63B8"}, marron:{fr:"marron", css:"#7A4B2A"},
+  noire:{fr:"noire", css:"#15171C"}, rougeblanche:{fr:"rouge et blanche", css:"repeating-linear-gradient(90deg,#C8242B 0 8px,#FFFFFF 8px 16px)"},
+  rouge:{fr:"rouge", css:"#C8242B"},
+};
+const NUM = [
+  ["ichi / sho / i","一","1 (sho = début, pour le 1er dan ; i- devant kyu)"],["ni","二","2"],["san","三","3"],
+  ["yon / shi","四","4 (on dit yon : shi sonne comme « mort »)"],["go","五","5"],["roku / rok-","六","6"],
+  ["shichi / nana","七","7"],["hachi","八","8"],["ku / kyu","九","9"],["ju","十","10"],
+  ["kyu","級","classe — grade avant la ceinture noire"],["dan","段","degré — grade de ceinture noire"],
+];
+const GRADES = [
+  {n:1,  kind:"kyu", num:6, name:"rokkyu",   k:"六級", belt:"blanche", trap:["rokukyu"]},
+  {n:2,  kind:"kyu", num:5, name:"gokyu",    k:"五級", belt:"jaune"},
+  {n:3,  kind:"kyu", num:4, name:"yonkyu",   k:"四級", belt:"orange", alt:["shikyu"]},
+  {n:4,  kind:"kyu", num:3, name:"sankyu",   k:"三級", belt:"verte"},
+  {n:5,  kind:"kyu", num:2, name:"nikyu",    k:"二級", belt:"bleue"},
+  {n:6,  kind:"kyu", num:1, name:"ikkyu",    k:"一級", belt:"marron", trap:["ichikyu"]},
+  {n:7,  kind:"dan", num:1, name:"shodan",   k:"初段", belt:"noire", trap:["ichidan"]},
+  {n:8,  kind:"dan", num:2, name:"nidan",    k:"二段", belt:"noire"},
+  {n:9,  kind:"dan", num:3, name:"sandan",   k:"三段", belt:"noire"},
+  {n:10, kind:"dan", num:4, name:"yondan",   k:"四段", belt:"noire", trap:["shidan"]},
+  {n:11, kind:"dan", num:5, name:"godan",    k:"五段", belt:"noire"},
+  {n:12, kind:"dan", num:6, name:"rokudan",  k:"六段", belt:"rougeblanche"},
+  {n:13, kind:"dan", num:7, name:"shichidan",k:"七段", belt:"rougeblanche", alt:["nanadan"]},
+  {n:14, kind:"dan", num:8, name:"hachidan", k:"八段", belt:"rougeblanche"},
+  {n:15, kind:"dan", num:9, name:"kudan",    k:"九段", belt:"rouge", alt:["kyudan"]},
+  {n:16, kind:"dan", num:10,name:"judan",    k:"十段", belt:"rouge"},
+].map(g=>({...g, alt:g.alt||[], trap:g.trap||[], fr: g.kind==="dan" ? (g.num===1?"1er dan":g.num+"e dan") : (g.num===1?"1er kyu":g.num+"e kyu")}));
+const beltHTML = b => `<span class="belt" style="background:${BELT[b].css}" aria-hidden="true"></span>`;
+const gradeName = g => g.name + (g.alt.length ? " (ou "+g.alt.join(", ")+")" : "");
+
 // ---------- État ----------
 let TOTAL = 10;
 const S = {mode:"build", round:0, score:0, streak:0, best:{}, queue:[], cur:null, picked:[], done:false};
@@ -403,6 +430,7 @@ function setMode(m){
 function newSession(){
   S.round=0; S.score=0; S.streak=0; S.done=false;
   if(S.mode==="kata"){ const K=KATA(); S.queue=K.series.map((s,i)=>({series:i})); if(K.orderRound) S.queue.push({order:true}); TOTAL=S.queue.length; }
+  else if(S.mode==="grade"){ TOTAL = 10; S.queue = pick(GRADES, TOTAL).map(g=>({g, q:pick(["say","mean","belt","next"],1)[0]})); }
   else { TOTAL = 10; S.queue = pick(S.mode==="image" ? WITH_IMG : T, TOTAL); }
   next();
 }
@@ -410,7 +438,7 @@ function next(){
   if(S.round>=TOTAL){ return renderSummary(); }
   S.cur = S.queue[S.round]; S.round++; S.picked=[];
   updateBar();
-  ({build:renderBuild, translate:renderTranslate, family:renderFamily, image:renderImage, kata:renderKata})[S.mode]();
+  ({build:renderBuild, translate:renderTranslate, family:renderFamily, image:renderImage, kata:renderKata, grade:renderGrade})[S.mode]();
 }
 const bestKey = () => S.mode==="kata" ? "kata-"+kataId : S.mode;
 function updateBar(){
@@ -655,6 +683,65 @@ function checkKata(){
   bindNext();
 }
 
+// ---------- Mode : Grades ----------
+// 4 types de question : dire le grade en japonais, traduire, trouver la ceinture, trouver le grade suivant.
+// Les leurres privilégient les pièges réels (ichidan, shidan…) puis des grades voisins.
+function near(g, n){ return GRADES.filter(x=>x!==g).sort((a,b)=>Math.abs(a.n-g.n)-Math.abs(b.n-g.n)+Math.random()-.5).slice(0,n); }
+function renderGrade(){
+  let {g, q} = S.cur;
+  if(q==="next" && g.n===16) q = "say";
+  let kicker, prompt, opts, answer;
+  if(q==="say"){
+    kicker="Comment dit-on ce grade en japonais ?";
+    prompt=`<div class="big">${beltHTML(g.belt)}${esc(g.fr)}</div>`;
+    const traps = g.trap.map(t=>({id:"trap:"+t, label:t}));
+    const others = near(g, 3-Math.min(traps.length,1)).map(x=>({id:x.name, label:x.name}));
+    opts = [{id:g.name, label:gradeName(g)}, ...traps.slice(0,1), ...others].slice(0,4);
+    answer = g.name;
+  } else if(q==="mean"){
+    kicker="Que signifie ce grade ?";
+    prompt=`<div class="big">${esc(g.name)}</div><div class="kanji jp">${esc(g.k)}</div>`;
+    const same = GRADES.filter(x=>x!==g && x.num===g.num).map(x=>({id:x.name,label:x.fr}));
+    const others = near(g,3).map(x=>({id:x.name,label:x.fr}));
+    opts = [{id:g.name,label:g.fr}, ...same, ...others].filter((o,i,a)=>a.findIndex(y=>y.id===o.id)===i).slice(0,4);
+    answer = g.name;
+  } else if(q==="belt"){
+    kicker="Quelle ceinture porte-t-on à ce grade ?";
+    prompt=`<div class="big">${esc(g.name)} · ${esc(g.fr)}</div><div class="kanji jp">${esc(g.k)}</div>`;
+    const ids = [g.belt, ...pick(Object.keys(BELT).filter(b=>b!==g.belt),3)];
+    opts = ids.map(b=>({id:b, label:BELT[b].fr, belt:b}));
+    answer = g.belt;
+  } else {
+    const nx = GRADES.find(x=>x.n===g.n+1);
+    kicker="Quel grade vient juste après ?";
+    prompt=`<div class="big">${beltHTML(g.belt)}${esc(g.name)}</div><div class="hint">${esc(g.fr)}</div>`;
+    const others = near(nx,4).filter(x=>x!==g).slice(0,3);
+    opts = [nx, ...others].map(x=>({id:x.name, label:x.name, belt:x.belt}));
+    answer = nx.name; S.cur.nx = nx;
+  }
+  opts = shuffle(opts);
+  $("#game").innerHTML = `
+    <div class="prompt"><div class="kicker">${esc(kicker)}</div>${prompt}</div>
+    <div class="choices" id="choices">${opts.map(o=>`<button class="choice" data-id="${esc(o.id)}">${o.belt?beltHTML(o.belt):""}${esc(o.label)}</button>`).join("")}</div>
+    <div id="out"></div>`;
+  $("#choices").addEventListener("click", e=>{
+    const b=e.target.closest(".choice"); if(!b) return;
+    const ok = b.dataset.id===answer;
+    document.querySelectorAll(".choice").forEach(c=>{c.disabled=true; if(c.dataset.id===answer)c.classList.add("good");});
+    if(!ok) b.classList.add("bad");
+    scoreIt(ok);
+    const shown = q==="next" ? S.cur.nx : g;
+    const trapNote = b.dataset.id.startsWith("trap:") ? `<div class="fam">« ${esc(b.dataset.id.slice(5))} » est une erreur courante : ${shown.num===1&&shown.kind==="dan"?"le 1er dan se dit sho-dan (初 = début).":shown.num===4?"pour 4, on dit yon, pas shi (homophone de « mort »).":shown.num===1?"ichi + kyu se contracte en ikkyu.":"roku + kyu se contracte en rokkyu."}</div>` : "";
+    $("#out").innerHTML = `<div class="result ${ok?"good":"bad"}">
+      <div class="verdict">${ok?"Ippon !":"Raté — voici la bonne réponse"}</div>
+      <div class="name">${esc(gradeName(shown))}<span class="jp">${esc(shown.k)}</span></div>
+      <div class="breakdown"><span><b>${esc(shown.fr)}</b></span><span>${beltHTML(shown.belt)}ceinture ${esc(BELT[shown.belt].fr)}</span></div>${trapNote}
+    </div>
+    <button class="btn" id="next">${S.round>=TOTAL?"Voir le score":"Suivante"}</button>`;
+    bindNext();
+  });
+}
+
 // ---------- Fin de session ----------
 function renderSummary(){
   S.done=true;
@@ -688,6 +775,11 @@ function renderLexicon(){
     <table><tbody>${list.map(t=>`<tr><td>${img(t.name)?`<img class="thumb" src="${imgSrc(t.name)}" alt="">`:""}<span class="k jp">${esc(t.kanji)}</span>${esc(t.name)}</td><td>${esc(t.fr.join(" → "))}<br><span class="r">${esc(FAM[t.f].label)}</span></td></tr>`).join("")}</tbody></table>
     ${KATAS.map(K=>`<h2>${esc(K.name)} <span class="jp" style="color:var(--indigo)">${esc(K.k)}</span></h2>
     <table><tbody>${K.series.map((s,i)=>`<tr><td>${i+1}. <span class="k jp">${esc(s.k)}</span>${esc(s.label)}</td><td>${s.list.map(n=>esc(n)).join("<br>")}</td></tr>`).join("")}</tbody></table>`).join("")}
+    <h2>Grades</h2>
+    <table><tbody>${GRADES.map(g=>`<tr><td>${beltHTML(g.belt)}<span class="k jp">${esc(g.k)}</span>${esc(g.name)}</td><td>${esc(g.fr)}${g.alt.length?`<br><span class="r">aussi : ${esc(g.alt.join(", "))}</span>`:""}</td></tr>`).join("")}</tbody></table>
+    <h2>Compter les grades</h2>
+    <table><tbody>${NUM.map(d=>`<tr><td><span class="k jp">${esc(d[1])}</span>${esc(d[0])}</td><td>${esc(d[2])}</td></tr>`).join("")}</tbody></table>
+    <p class="note">Les kyu se comptent à rebours : on commence 6e kyu et on finit 1er kyu (ikkyu), juste avant shodan. Couleurs de ceinture selon la grille FFJDA adulte ; les enfants ont en plus des ceintures bicolores. Le junomichi peut avoir sa propre grille : à faire valider par les enseignants.</p>
     <h2>Mots du dojo</h2>
     <table><tbody>${DOJO.map(d=>`<tr><td><span class="k jp">${esc(d[1])}</span>${esc(d[0])}</td><td>${esc(d[2])}</td></tr>`).join("")}</tbody></table>
     <p class="note">Prototype. Le voisement (koshi → goshi, harai → barai) est une règle de liaison japonaise, pas une autre technique. Deux homophones à distinguer par le kanji : <b>kata</b> 肩 épaule / 片 un seul côté, et <b>uchi</b> 内 intérieur / 打 frapper. Terminologie à faire valider par les enseignants du club : le junomichi garde certaines appellations propres.</p>
@@ -700,5 +792,4 @@ document.querySelector("nav").addEventListener("click", e=>{const b=e.target.clo
 setMode("learn");
 </script>
 
-</body>
-</html>
+</body></html>

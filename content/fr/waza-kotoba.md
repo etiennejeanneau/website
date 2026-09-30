@@ -4,6 +4,18 @@ slug: waza-kotoba
 tagline: Apprendre les mots qui se cachent derrière les techniques de judo et de junomichi.
 ---
 
+### Nouveau : les grades (30 septembre 2026)
+
+- **Nouvel onglet « Grades »** : 10 questions par partie pour apprendre les grades du judo en japonais.
+    - Dire un grade en japonais (4e dan → yondan)
+    - Traduire un grade (nidan → 2e dan)
+    - Retrouver la couleur de ceinture
+    - Trouver le grade suivant
+- **Les pièges classiques** sont dans les réponses proposées : ichidan au lieu de shodan, shidan au lieu de yondan, ichikyu au lieu d'ikkyu. Une explication s'affiche quand on se trompe.
+- **Lexique enrichi** : les 16 grades, du 6e kyu (rokkyu) au 10e dan (judan), avec leur kanji, leur ceinture et les variantes acceptées (nanadan, kyudan).
+- **Compter en japonais** : un tableau des chiffres utilisés dans les grades (ichi, ni, san, yon…).
+- Les couleurs suivent la grille adulte de la FFJDA. La terminologie reste à valider par les enseignants du club.
+
 ## Le prompt
 
 *Waza* veut dire technique, *kotoba* veut dire mot. Un quiz, donc, pas un jeu
@@ -39,6 +51,8 @@ mode : voilà le sens, reconstituez le nom avec les tuiles.
 5. **Un mode révision.** Je voulais apprendre avant d'être interrogé. Une fiche
    par technique : le dessin, le nom, les kanji, chaque brique expliquée, et sa
    place dans les katas.
+6. **Les grades.** Un onglet de plus pour apprendre les grades en japonais,
+   du 6e kyu au 10e dan, avec la couleur de chaque ceinture.
 
 ## Ce que j'ai appris
 
