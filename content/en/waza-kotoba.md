@@ -4,9 +4,21 @@ slug: waza-kotoba
 date: 2026-09-22
 tagline: Learn the words behind judo and junomichi techniques.
 game: games/waza-kotoba/index.html
-iterations: 5
+iterations: 6
 tags: [quiz, judo, mobile]
 ---
+
+### New: the grades (30 September 2026)
+
+- **New "Grades" tab**: 10 questions per round to learn the judo grades in Japanese.
+    - Say a grade in Japanese (4th dan → yondan)
+    - Translate a grade (nidan → 2nd dan)
+    - Find the belt colour
+    - Find the next grade
+- **The classic traps** are among the answers offered: ichidan instead of shodan, shidan instead of yondan, ichikyu instead of ikkyu. An explanation shows up when you get it wrong.
+- **A bigger lexicon**: all 16 grades, from 6th kyu (rokkyu) to 10th dan (judan), with their kanji, their belt and the accepted variants (nanadan, kyudan).
+- **Counting in Japanese**: a table of the numbers used in the grades (ichi, ni, san, yon…).
+- The colours follow the FFJDA adult grid (the French judo federation). The terms are still to be checked by the club's teachers.
 
 ## The prompt
 
@@ -40,6 +52,8 @@ assemble the name from tiles.
 5. **A study mode.** I wanted to learn before being tested. One card per
    technique: the drawing, the name, the kanji, each brick explained, and where
    it sits in the katas.
+6. **The grades.** One more tab, to learn the grades in Japanese, from 6th
+   kyu to 10th dan, with the colour of each belt.
 
 ## What I learned
 
