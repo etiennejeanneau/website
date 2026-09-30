@@ -138,6 +138,9 @@
   // at what is really down there and step above it, rather than sit on it.
   // Anything a game draws inside its canvas cannot be seen from here, but in
   // those games the corner is free anyway.
+  function oneScreen() {
+    return document.documentElement.scrollHeight <= window.innerHeight + 1;
+  }
   function above(box) {
     var top = Infinity;
     var all = document.querySelectorAll("body *");
@@ -145,7 +148,12 @@
       var el = all[i];
       if (el === btn || btn.contains(el)) continue;
       var style = getComputedStyle(el);
-      if (style.position !== "fixed" && style.position !== "absolute") continue;
+      // A bar pinned to the screen. On a game that fits one screen, also a
+      // button it simply lays out at the bottom of its page (America's Pride
+      // puts APPROVE there). On a page that scrolls, such buttons slide past
+      // the corner, and stepping above one only lands on the next.
+      var pinned = style.position === "fixed" || style.position === "absolute";
+      if (!pinned && !(oneScreen() && el.matches("button, a[href], input, select, [role=button]"))) continue;
       if (style.visibility === "hidden") continue;
       var r = el.getBoundingClientRect();
       if (!r.width || !r.height) continue;
