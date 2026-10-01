@@ -181,6 +181,31 @@ it next to what the visitor actually asked for, not instead of it. It is the
 list to look at when deciding whether a name is worth adding to the handful the
 script throws out on sight, at the top of the file.
 
+### Every Monday, by email
+
+`.github/workflows/stats.yml` runs the report above (with `--pages` and
+`--agents`) every Monday morning and emails it. Amazon SES sends it, from and
+to one address. The repo is public and so are its Actions logs, so the
+numbers go by email only; the log just says `sent`.
+
+Once, to set it up:
+
+1. Update the CloudFormation stack with the new `StatsEmail` parameter set to
+   the address that should get the report. This adds an SES address and a
+   second GitHub role that can only read the logs and send that one email.
+2. AWS emails that address a confirmation link. Click it: nothing is sent until
+   then. (SES stays in its "sandbox", which only allows confirmed addresses.
+   That suits this: the report can only ever go to you.)
+3. In GitHub, **Settings → Environments → New environment**, name it `stats`,
+   and give it two secrets:
+   - `AWS_STATS_ROLE_ARN` = stack output `StatsRoleArn`
+   - `STATS_EMAIL` = the same address
+4. **Actions → Weekly stats → Run workflow** sends one straight away, to check.
+
+GitHub turns off scheduled workflows in a public repo after 60 days without a
+commit. If the emails stop after a quiet spell, the Actions tab has a button to
+turn it back on.
+
 ## Ads and feedback
 
 `site.yaml` holds the AdSense publisher id and the Tally form id. Both are empty

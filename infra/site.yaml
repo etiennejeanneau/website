@@ -44,6 +44,17 @@ Parameters:
     Type: Number
     Default: 400
     Description: How long to keep CloudFront access logs (visitor stats source)
+  StatsEmail:
+    Type: String
+    Default: ""
+    Description: >-
+      Where the weekly visitor stats are emailed (.github/workflows/stats.yml).
+      Leave empty for no email: the SES address and the stats role are then not
+      created. Setting it makes AWS send a confirmation link to that address;
+      nothing is sent until it is clicked.
+
+Conditions:
+  HasStatsEmail: !Not [!Equals [!Ref StatsEmail, ""]]
 
 Resources:
   # ------------------------------------------------------------ storage
@@ -268,6 +279,54 @@ Resources:
                 Action: [cloudfront:CreateInvalidation]
                 Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
 
+  # ------------------------------------------------------------ weekly stats email
+  # SES sends the email. While the account is in the SES "sandbox" (the default,
+  # and the right place to stay), it can only send to confirmed addresses, so
+  # this one address is both the sender and the only possible recipient.
+  StatsEmailIdentity:
+    Type: AWS::SES::EmailIdentity
+    Condition: HasStatsEmail
+    Properties:
+      EmailIdentity: !Ref StatsEmail
+
+  # A second role, apart from the deploy one: it reads the logs and sends one
+  # email, and can do nothing else. Same trust as the deploy role, except the
+  # job must declare environment: stats instead of production, so neither job
+  # can borrow the other's rights.
+  StatsRole:
+    Type: AWS::IAM::Role
+    Condition: HasStatsEmail
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-github-stats"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: !Ref GitHubOidcProvider }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub
+                  - "repo:${Owner}@${GitHubOwnerId}/${Name}@${GitHubRepoId}:environment:stats"
+                  - Owner: !Select [0, !Split ["/", !Ref GitHubRepo]]
+                    Name: !Select [1, !Split ["/", !Ref GitHubRepo]]
+      Policies:
+        - PolicyName: read-logs-send-report
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [s3:ListBucket]
+                Resource: !GetAtt LogBucket.Arn
+              - Effect: Allow
+                Action: [s3:GetObject]
+                Resource: !Sub "${LogBucket.Arn}/cloudfront/*"
+              - Effect: Allow
+                Action: [ses:SendEmail]
+                Resource: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${StatsEmail}"
+                Condition:
+                  ForAllValues:StringEquals:
+                    ses:Recipients: [!Ref StatsEmail]
+
 Outputs:
   BucketName:
     Value: !Ref SiteBucket
@@ -279,3 +338,7 @@ Outputs:
   LogBucketName:
     Value: !Ref LogBucket
     Description: Source for scripts/stats.py
+  StatsRoleArn:
+    Condition: HasStatsEmail
+    Value: !GetAtt StatsRole.Arn
+    Description: Set this as the AWS_STATS_ROLE_ARN secret of the stats environment in GitHub

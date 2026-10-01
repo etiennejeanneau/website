@@ -1,0 +1,37 @@
+name: Weekly stats
+
+# Every Monday, read last week's CloudFront logs and email the report.
+# GitHub's clock is UTC: 06:00 UTC is 8:00 in Paris in summer, 7:00 in winter,
+# so the email is waiting by 8 either way. Scheduled runs often start a few
+# minutes late. The "Run workflow" button on the Actions tab sends one now.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # OIDC token to assume the AWS stats role
+  contents: read
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    # The stats role only trusts jobs in this environment; its two secrets
+    # live there too, out of reach of the build and deploy jobs.
+    environment: stats
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install boto3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_STATS_ROLE_ARN }}
+          aws-region: us-east-1
+      # The repo is public, so is this log: the report goes by email only,
+      # and all the step prints is "sent".
+      - name: Email the report
+        run: >
+          python scripts/stats.py --bucket ohlala-cloud-logs --days 7
+          --pages --agents --email "${{ secrets.STATS_EMAIL }}"
