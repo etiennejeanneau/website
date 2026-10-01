@@ -152,7 +152,7 @@ infra/site.yaml     CloudFormation for the whole AWS side (deploy in us-east-1)
 scripts/shots.py    takes the game pictures (needs Playwright; the build
                     itself never opens a browser)
 scripts/stats.py    visitor counts from CloudFront logs (no cookies)
-.github/workflows/  build on PR, build + deploy on main
+.github/workflows/  build on PR, build + deploy on main, stats emailed on Mondays
 ```
 
 URLs: `/` home, `/games/<slug>/` story page, `/play/<slug>/` the game itself,

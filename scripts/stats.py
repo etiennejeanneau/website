@@ -33,14 +33,23 @@ Usage:
   python scripts/stats.py --bucket ohlala-cloud-logs --days 7
   python scripts/stats.py --bucket ohlala-cloud-logs --days 30 --pages
   python scripts/stats.py --bucket ohlala-cloud-logs --days 7 --agents
+  python scripts/stats.py --bucket ohlala-cloud-logs --days 7 --pages --agents \
+      --email someone@example.com
 
-Needs: boto3 and AWS credentials with s3:GetObject/ListBucket on the log bucket.
+--email sends the report through Amazon SES instead of printing it, from and to
+that address (it must be confirmed in SES). Only "sent" is printed, so a public
+GitHub Actions log shows nothing of the numbers.
+
+Needs: boto3 and AWS credentials with s3:GetObject/ListBucket on the log bucket
+(and ses:SendEmail for --email).
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
 import gzip
+import html
 import io
 import statistics
 import urllib.parse
@@ -201,8 +210,36 @@ def main() -> None:
     ap.add_argument("--days", type=int, default=7)
     ap.add_argument("--pages", action="store_true", help="also list the most visited pages")
     ap.add_argument("--agents", action="store_true", help="also list the names visitors gave for themselves")
+    ap.add_argument("--email", help="send the report to this address (via SES) instead of printing it")
     args = ap.parse_args()
 
+    if not args.email:
+        report(args)
+        return
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        report(args)
+    send(args.email, f"ohlala.cloud visitors, last {args.days} days", out.getvalue())
+    print("sent")
+
+
+def send(address: str, subject: str, text: str) -> None:
+    """Email the report to and from one address. The HTML part only keeps the
+    columns lined up: Gmail shows plain text in a font where they would drift."""
+    body = f'<pre style="font-family:Menlo,Consolas,monospace;font-size:13px">{html.escape(text)}</pre>'
+    boto3.client("ses", region_name="us-east-1").send_email(
+        Source=address,
+        Destination={"ToAddresses": [address]},
+        Message={
+            "Subject": {"Data": subject, "Charset": "UTF-8"},
+            "Body": {"Text": {"Data": text, "Charset": "UTF-8"},
+                     "Html": {"Data": body, "Charset": "UTF-8"}},
+        },
+    )
+
+
+def report(args: argparse.Namespace) -> None:
+    """Read the logs and print the whole report."""
     since = dt.date.today() - dt.timedelta(days=args.days)
     s3 = boto3.client("s3")
     visitors: dict[str, set] = defaultdict(set)
